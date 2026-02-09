@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def wave_eq_deriv(state, t, c=1, L=1, N=100):
+def wave_eq_deriv(state, t, dt=1e-3, c=1, L=1, N=100):
     """
     Compute the derivatives for the 1D wave equation, to use for a forward Euler integration scheme.
     Takes as arguments: 
@@ -19,9 +19,10 @@ def wave_eq_deriv(state, t, c=1, L=1, N=100):
     psi[-1] = 0 # boundary condition at x=L
 
     dx = L / N # spatial step size
-    dpsi_dt = psi_t # first deriv in time to update Ψ
+    # dpsi_dt = psi_t # first deriv in time to update Ψ
     d2psi_dx2 = (np.roll(psi, -1) - 2 * psi + np.roll(psi, 1)) / dx**2 # second deriv in space
     dpsi_t_dt = c**2 * d2psi_dx2 # second deriv in time to update first deriv
+    dpsi_dt = psi_t + dt * dpsi_t_dt # first deriv in time to update Ψ
     
     # Check that the boundary conditions remain satisfied
     assert psi[0] == 0, f"Expected 0 at the boundary, got {d2psi_dx2[0]}"
@@ -50,7 +51,7 @@ def integrate_euler(deriv_func, state0, dt=1e-3, T_sim=10, **kwargs):
 
     # Perform the forward Euler integration
     for i in range(1, len(time)):
-        derivs = deriv_func(states[i-1], time[i-1], **kwargs)
+        derivs = deriv_func(states[i-1], time[i-1], dt, **kwargs)
         # Update according to: new_state = old_state + dt * derivs
         state = states[i-1] + dt * np.transpose(derivs)
         # Save the updated state
