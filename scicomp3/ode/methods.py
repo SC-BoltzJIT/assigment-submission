@@ -65,7 +65,8 @@ def symplectic_euler_step(fun, t, y, dt, args=()):
 
     # Symplectic Euler: update velocity first, then position with new velocity
     v_new = v + dt * dv_dt
-    psi_new = psi + dt * v_new  # uses updated velocity!
+    #psi_new = psi + dt * v_new  # uses updated velocity!
+    psi_new = psi
 
     y_new = np.column_stack([psi_new, v_new])
     return y_new, 1
