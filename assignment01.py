@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation, PillowWriter
+
 
 def wave_eq_deriv(state, t, dt=1e-3, c=1, L=1, N=100):
     """
@@ -19,9 +21,9 @@ def wave_eq_deriv(state, t, dt=1e-3, c=1, L=1, N=100):
     psi[-1] = 0 # boundary condition at x=L
 
     dx = L / N # spatial step size
-    # dpsi_dt = psi_t # first deriv in time to update Ψ
     d2psi_dx2 = (np.roll(psi, -1) - 2 * psi + np.roll(psi, 1)) / dx**2 # second deriv in space
     dpsi_t_dt = c**2 * d2psi_dx2 # second deriv in time to update first deriv
+
     dpsi_dt = psi_t + dt * dpsi_t_dt # first deriv in time to update Ψ
     
     # Check that the boundary conditions remain satisfied
@@ -59,25 +61,54 @@ def integrate_euler(deriv_func, state0, dt=1e-3, T_sim=10, **kwargs):
     
     return time, states
 
-c=1; L=1; N=100
-dx = L/N
-dt = 1e-4
-T_sim = 2
 
-psi0 = np.sin(5*np.pi*np.arange(N)*dx) # initial amplitudes Ψ
-psi_t0 = np.zeros(N) # initial velocities Ψ_t are set to 0
-state0 = np.transpose([psi0, psi_t0]) # initial state vector [Ψ, Ψ_t]
+def animate_wave(amplitudes: list, dpi=100, case="i", dt=1e-3, T_sim=10,**kwargs):
+    """Create and save an animated GIF showing the temporal evolution of CA grids."""
 
-time, states = integrate_euler(wave_eq_deriv, state0=state0, dt=dt, T_sim=T_sim, c=c, L=L, N=N)
+    c,L,N = kwargs['c'], kwargs['L'], kwargs['N']
+    dx = L/N
 
+    # Set up the figure
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.plot(np.arange(N)*dx, amplitudes[0], color="ForestGreen")
 
-psis = states[:, :, 0]  # Extract the amplitudes Ψ over time
-fig, ax = plt.subplots(figsize=(6, 4))
-for i in range(0, len(time), len(time)//100):
-    ax.plot(np.arange(N)*dx, psis[i], color=plt.cm.viridis(i/len(time)))
-ax.set_xlabel('Position along string (x)')
-ax.set_ylabel('String Amplitude (Ψ)')
-ax.set_title('Vibrating String over Time')
-# label=f't={time[i]:.2f}s', 
-fig.colorbar(plt.cm.ScalarMappable(cmap='viridis'), ax=ax, label='Time (s)')
-plt.show()
+    ax.set_xlabel('Position along string (x)')
+    ax.set_ylabel('String amplitude (Ψ)')
+    ax.set_title('Vibrating string over at time 0', fontsize=14)
+    ylim = np.max(np.abs(amplitudes)) * 1.5
+    ax.set_ylim(-ylim, ylim)
+
+    # Define animation function
+    def animate(frame):
+        # i, grid = frame
+        i, plot = frame
+        ax.clear()
+        ax.plot(np.arange(N)*dx, plot, color="ForestGreen")
+        ax.set_ylim(-ylim, ylim)
+        ax.set_xlabel('Position along string (x)')
+        ax.set_ylabel('String amplitude (Ψ)')
+        ax.set_title(f'Vibrating string at time {i*10*dt:.2f}', fontsize=14)
+        return []
+
+    # Set up helper function to display progress
+    def progress_callback(current_frame, total_frames):
+        """Shows saving progress"""
+        if current_frame % 10 == 0:
+            print(f"Saving frame {current_frame}/{total_frames} ...")
+
+    amplitudes_to_animate = list(enumerate(amplitudes[::10]))  # Sample every 10th frame for animation
+
+    # Create animation
+    anim = FuncAnimation(
+        fig, animate, amplitudes_to_animate, interval=10
+    )
+    print("Saving animation ... (This can take a while depending on the dpi.)")
+
+    filename = f"../images/gifs/vibrating_string_case={case}_dt={dt}_Tsim={T_sim}_c={c}_L={L}_N={N}.gif"
+    anim.save(
+        filename,
+        writer=PillowWriter(fps=20),
+        dpi=dpi,
+        progress_callback=progress_callback,
+    )
+    print(f"Saved successfully as '{filename}'")
