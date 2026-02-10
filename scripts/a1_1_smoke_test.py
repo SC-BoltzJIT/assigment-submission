@@ -12,22 +12,24 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from scicomp3 import Grid1D, solve_ivp, wave1d_rhs
+from scicomp3 import solve_ivp, wave1d_rhs
 
 
 # Parameters
 c = 1
 L = 1
-N = 90
+N = 90  # number of intervals (N+1 grid points)
 dt = 1e-3
 T_sim = 10
 
-# Setup grid
-grid = Grid1D(N=N, L=L)
+# Setup grid with N+1 points to include both boundaries
+x = np.linspace(0, L, N+1)  # [0, dx, 2dx, ..., L]
 
-# Initial condition: sin(5πx)
-psi0 = np.sin(5 * np.pi * grid.x)
-v0 = np.zeros(N)
+# Initial condition: sin(5πx) with boundary conditions enforced
+psi0 = np.sin(5 * np.pi * x)
+psi0[0] = 0   # enforce boundary condition at x=0
+psi0[-1] = 0  # enforce boundary condition at x=L
+v0 = np.zeros(N+1)
 y0 = np.column_stack([psi0, v0])
 
 # Solve
@@ -37,7 +39,7 @@ result = solve_ivp(
     y0=y0,
     method="symplectic_euler",
     dt=dt,
-    args=(c, L, N)
+    args=(c, L, N+1)
 )
 
 print(f"Integration: {result.message}")
@@ -49,7 +51,7 @@ amplitudes = result.y[:, :, 0]
 # Plot
 fig, ax = plt.subplots(figsize=(6, 4))
 for i in range(0, len(result.t), len(result.t)//11):
-    ax.plot(grid.x, amplitudes[i], color=plt.cm.cividis(i/len(result.t)))
+    ax.plot(x, amplitudes[i], color=plt.cm.cividis(i/len(result.t)))
 
 ax.set_xlabel('Position along string (x)')
 ax.set_ylabel('String amplitude (Ψ)')
