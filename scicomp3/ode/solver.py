@@ -37,6 +37,8 @@ def solve_ivp(fun, t_span, y0, method="symplectic_euler", dt=1e-3, args=(),
     # Allocate solution array
     y = np.zeros((n_steps,) + y0.shape)
     y[0] = y0
+    if post_step is not None:
+        y[0] = post_step(t[0], y[0])
 
     # Time stepping loop
     nfev = 0

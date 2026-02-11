@@ -1,6 +1,6 @@
 """Result containers for solvers."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import numpy as np
 
 
@@ -22,3 +22,10 @@ class ODEResult:
     success: bool = True
     message: str = ""
     nfev: int = 0
+
+def find_y(res: ODEResult, t):
+    """Compute the y-value corresponding to the given t value"""
+    for i in range(len(res.t)):
+        if res.t[i] == t:
+            return res.y[i]
+    raise ValueError
