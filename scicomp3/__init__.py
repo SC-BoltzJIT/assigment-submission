@@ -5,6 +5,8 @@ This package provides solvers for the 1D wave equation using
 time-stepping methods (Forward Euler, Symplectic Euler).
 """
 
+__version__ = "0.1.0"
+
 from .core.grid import Grid1D
 from .core.result import ODEResult
 from .ode.solver import solve_ivp
