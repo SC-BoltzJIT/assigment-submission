@@ -29,3 +29,21 @@ def find_y(res: ODEResult, t):
         if res.t[i] == t:
             return res.y[i]
     raise ValueError
+
+
+@dataclass
+class BVPResult:
+    """Container for BVP (boundary value problem) iterative solver results.
+
+    Attributes:
+        c: Solution array (concentration field)
+        converged: Whether the iteration converged
+        iterations: Number of iterations performed
+        delta_history: History of convergence measure at each iteration
+        message: Description of termination
+    """
+    c: np.ndarray
+    converged: bool = True
+    iterations: int = 0
+    delta_history: np.ndarray = None
+    message: str = ""
