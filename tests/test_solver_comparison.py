@@ -9,10 +9,10 @@ import pytest
 import sys
 from pathlib import Path
 
-# Add assigment-submission root to path so we can import both packages
+# assignment01.py is at project root (not a package), so we need sys.path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from assignment01 import wave_eq_deriv, integrate_euler
+
 from scicomp3 import solve_ivp, wave1d_rhs
 
 

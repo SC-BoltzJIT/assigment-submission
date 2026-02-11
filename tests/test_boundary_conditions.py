@@ -6,10 +6,6 @@ across all time steps for all test cases.
 This is a pytest-compatible version of scripts/a1_1_validation_boundary_conditions.py
 """
 
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 import numpy as np
 import pytest
 
