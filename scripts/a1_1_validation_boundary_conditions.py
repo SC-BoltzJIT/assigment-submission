@@ -46,6 +46,10 @@ for i, (name, ic_func) in enumerate(test_cases):
     print(f"\nProcessing {name}...")
 
     psi0 = ic_func(grid.x)
+    # initialized the fixed point required by the boundary conditions
+    psi0[0] = 0
+    psi0[-1] = 0
+    
     v0 = np.zeros(N)
     y0 = np.column_stack([psi0, v0])
 
@@ -64,4 +68,4 @@ for i, (name, ic_func) in enumerate(test_cases):
     # amplitudes = result.y[:, :, 0]
     # animate_wave(grid, amplitudes, result.t, i+1, dt, T_sim, c, L, N, output_dir)
 
-print("\nAll animations complete!")
+print("\nAll validation complete!")
