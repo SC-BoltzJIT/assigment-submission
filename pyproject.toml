@@ -12,4 +12,8 @@ dependencies = ["numpy"]
 plot = ["matplotlib"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["scicomp3"]
+packages = ["src/scicomp3"]
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+testpaths = ["tests"]
