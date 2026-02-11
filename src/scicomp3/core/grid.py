@@ -27,3 +27,38 @@ class Grid1D:
     def shape(self) -> tuple:
         """Return the shape of the grid."""
         return (self.N,)
+
+
+@dataclass
+class Grid2D:
+    """2D uniform grid for spatial discretization.
+
+    Grid points: i,j in (0, 1, ..., N), giving N+1 points in each direction.
+
+    Attributes:
+        N: Number of grid intervals in each direction
+        L: Domain length (square domain)
+        dx: Grid spacing (computed as L/N)
+        x: 1D array of x-coordinates
+        y: 1D array of y-coordinates
+        X: 2D meshgrid of x-coordinates
+        Y: 2D meshgrid of y-coordinates
+    """
+    N: int
+    L: float = 1.0
+    dx: float = field(init=False)
+    x: np.ndarray = field(init=False, repr=False)
+    y: np.ndarray = field(init=False, repr=False)
+    X: np.ndarray = field(init=False, repr=False)
+    Y: np.ndarray = field(init=False, repr=False)
+
+    def __post_init__(self):
+        self.dx = self.L / self.N
+        self.x = np.linspace(0, self.L, self.N + 1)
+        self.y = np.linspace(0, self.L, self.N + 1)
+        self.X, self.Y = np.meshgrid(self.x, self.y, indexing='ij')
+
+    @property
+    def shape(self) -> tuple:
+        """Return the shape of the grid."""
+        return (self.N + 1, self.N + 1)

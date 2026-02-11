@@ -12,6 +12,7 @@ from .core.result import ODEResult
 from .ode.solver import solve_ivp
 from .ode.methods import METHODS
 from .pde.wave import wave1d_rhs
+from .pde.diffusion import diffusion2d_rhs
 
 __all__ = [
     "Grid1D",
@@ -19,4 +20,5 @@ __all__ = [
     "solve_ivp",
     "METHODS",
     "wave1d_rhs",
+    "diffusion2d_rhs",
 ]
