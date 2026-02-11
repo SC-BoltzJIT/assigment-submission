@@ -22,6 +22,13 @@ from scicomp3.pde.wave import (
 )
 
 
+def fixed_ends(t, y):
+    """Enforce fixed boundary conditions: psi=0 at both ends."""
+    y[0, 0] = 0
+    y[-1, 0] = 0
+    return y
+
+
 # Parameters
 c = 1
 L = 1
@@ -58,7 +65,8 @@ for name, ic_func in test_cases:
         y0=y0,
         method="symplectic_euler",
         dt=dt,
-        args=(c, L, N)
+        args=(c, L, N),
+        post_step=fixed_ends,
     )
     results.append((name, result))
 

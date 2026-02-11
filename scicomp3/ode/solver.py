@@ -5,7 +5,8 @@ from ..core.result import ODEResult
 from .methods import METHODS
 
 
-def solve_ivp(fun, t_span, y0, method="symplectic_euler", dt=1e-3, args=()):
+def solve_ivp(fun, t_span, y0, method="symplectic_euler", dt=1e-3, args=(),
+              post_step=None):
     """Solve an initial value problem using time-stepping.
 
     Solves dy/dt = f(t, y) from t_span[0] to t_span[1].
@@ -17,6 +18,8 @@ def solve_ivp(fun, t_span, y0, method="symplectic_euler", dt=1e-3, args=()):
         method: Time-stepping method name (see METHODS registry)
         dt: Time step size
         args: Additional arguments to pass to fun
+        post_step: Optional callback f(t, y) -> y applied after each step,
+            e.g. to enforce boundary conditions. Must return the modified y.
 
     Returns:
         ODEResult with t (time array) and y (solution array)
@@ -39,6 +42,8 @@ def solve_ivp(fun, t_span, y0, method="symplectic_euler", dt=1e-3, args=()):
     nfev = 0
     for i in range(1, n_steps):
         y[i], n_evals = step_func(fun, t[i-1], y[i-1], dt, args)
+        if post_step is not None:
+            y[i] = post_step(t[i], y[i])
         nfev += n_evals
 
     return ODEResult(

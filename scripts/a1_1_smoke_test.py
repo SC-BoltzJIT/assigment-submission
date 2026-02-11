@@ -32,6 +32,12 @@ psi0[-1] = 0  # enforce boundary condition at x=L
 v0 = np.zeros(N+1)
 y0 = np.column_stack([psi0, v0])
 
+def fixed_ends(t, y):
+    """Enforce fixed boundary conditions: psi=0 at both ends."""
+    y[0, 0] = 0
+    y[-1, 0] = 0
+    return y
+
 # Solve
 result = solve_ivp(
     wave1d_rhs,
@@ -39,7 +45,8 @@ result = solve_ivp(
     y0=y0,
     method="symplectic_euler",
     dt=dt,
-    args=(c, L, N+1)
+    args=(c, L, N+1),
+    post_step=fixed_ends,
 )
 
 print(f"Integration: {result.message}")
