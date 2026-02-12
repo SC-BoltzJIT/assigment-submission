@@ -36,13 +36,37 @@ def apply_diffusion_bc(c):
     c[:, -1] = 1  # top boundary (y=1)
 
 
+def diffusion2d_rhs(t, c, D, dx):
+    """Compute RHS of 2D diffusion equation: dc/dt = D∇²c.
+
+    Uses the 5-point stencil for the discrete Laplacian with
+    periodic boundary in x direction (via np.roll).
+
+    Args:
+        t: Current time (unused, for interface consistency with solve_ivp)
+        c: Concentration field (N+1 x N+1 array)
+        D: Diffusion coefficient
+        dx: Grid spacing
+
+    Returns:
+        dcdt: Time derivative D∇²c with same shape as c
+    """
+    # Shifted arrays for 5-point stencil (periodic in x via roll)
+    c_ip = np.roll(c, -1, axis=0)  # c[i+1, j]
+    c_im = np.roll(c, 1, axis=0)   # c[i-1, j]
+    c_jp = np.roll(c, -1, axis=1)  # c[i, j+1]
+    c_jm = np.roll(c, 1, axis=1)   # c[i, j-1]
+
+    # Discrete Laplacian: ∇²c ≈ (c_{i+1} + c_{i-1} + c_{j+1} + c_{j-1} - 4c) / dx²
+    laplacian = (c_ip + c_im + c_jp + c_jm - 4 * c) / dx**2
+
+    return D * laplacian
+
+
 def diffusion_step(c, D, dx, dt):
     """Perform one explicit time step of the diffusion equation.
 
-    Uses the 5-point stencil:
-        c^{k+1}_{i,j} = c^k_{i,j} + α(c^k_{i+1,j} + c^k_{i-1,j} + c^k_{i,j+1} + c^k_{i,j-1} - 4c^k_{i,j})
-
-    where α = δtD/δx²
+    Uses forward Euler: c^{k+1} = c^k + dt * D∇²c^k
 
     Args:
         c: Current concentration field (N+1 x N+1 array)
@@ -59,17 +83,8 @@ def diffusion_step(c, D, dx, dt):
     if 4 * alpha > 1:
         raise ValueError(f"Unstable: 4*α = {4*alpha:.3f} > 1. Reduce dt or increase dx.")
 
-    # Use np.roll for periodic boundary in x direction
-    c_ip = np.roll(c, -1, axis=0)  # c[i+1, j]
-    c_im = np.roll(c, 1, axis=0)   # c[i-1, j]
-    c_jp = np.roll(c, -1, axis=1)  # c[i, j+1]
-    c_jm = np.roll(c, 1, axis=1)   # c[i, j-1]
-
-    # Laplacian using 5-point stencil
-    laplacian = c_ip + c_im + c_jp + c_jm - 4 * c
-
-    # Update interior points
-    c_new = c + alpha * laplacian
+    # Forward Euler step using diffusion RHS
+    c_new = c + dt * diffusion2d_rhs(0, c, D, dx)
 
     # Apply boundary conditions
     apply_diffusion_bc(c_new)
@@ -79,6 +94,12 @@ def diffusion_step(c, D, dx, dt):
 
 def solve_diffusion(grid, D=1.0, dt=None, T_sim=1.0, c0=None, save_interval=1):
     """Solve the 2D time-dependent diffusion equation.
+
+    Delegates to solve_ivp with forward Euler method. The diffusion equation
+    dc/dt = D∇²c is an initial value problem solved by:
+        - RHS function: diffusion2d_rhs (computes D∇²c)
+        - Method: forward Euler (explicit)
+        - post_step: apply_diffusion_bc (enforce boundary conditions)
 
     Args:
         grid: Grid2D object defining the spatial discretization
@@ -92,6 +113,8 @@ def solve_diffusion(grid, D=1.0, dt=None, T_sim=1.0, c0=None, save_interval=1):
         t: Array of time points
         c_history: Array of concentration fields at each saved time point
     """
+    from ..ode.solver import solve_ivp
+
     N = grid.N
     dx = grid.dx
 
@@ -114,19 +137,24 @@ def solve_diffusion(grid, D=1.0, dt=None, T_sim=1.0, c0=None, save_interval=1):
     # Apply boundary conditions
     apply_diffusion_bc(c)
 
-    # Time stepping
-    n_steps = int(T_sim / dt)
-    t_save = [0.0]
-    c_history = [c.copy()]
+    # Boundary conditions as post_step callback
+    def post_step(t, y):
+        apply_diffusion_bc(y)
+        return y
 
-    for k in range(1, n_steps + 1):
-        c = diffusion_step(c, D, dx, dt)
+    # Solve as IVP: dc/dt = D∇²c
+    result = solve_ivp(
+        diffusion2d_rhs,
+        t_span=(0, T_sim),
+        y0=c,
+        method="forward_euler",
+        dt=dt,
+        args=(D, dx),
+        post_step=post_step,
+        save_interval=save_interval,
+    )
 
-        if k % save_interval == 0:
-            t_save.append(k * dt)
-            c_history.append(c.copy())
-
-    return np.array(t_save), np.array(c_history)
+    return result.t, result.y
 
 
 def analytical_solution(y, t, D=1.0, n_terms=50):

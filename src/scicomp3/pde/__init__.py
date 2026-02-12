@@ -2,6 +2,7 @@
 
 from .wave import wave1d_rhs
 from .diffusion import (
+    diffusion2d_rhs,
     solve_diffusion,
     diffusion_step,
     apply_diffusion_bc,
@@ -10,6 +11,7 @@ from .diffusion import (
 
 __all__ = [
     "wave1d_rhs",
+    "diffusion2d_rhs",
     "solve_diffusion",
     "diffusion_step",
     "apply_diffusion_bc",

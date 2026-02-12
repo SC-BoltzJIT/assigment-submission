@@ -6,7 +6,7 @@ from .methods import METHODS
 
 
 def solve_ivp(fun, t_span, y0, method="symplectic_euler", dt=1e-3, args=(),
-              post_step=None):
+              post_step=None, save_interval=1):
     """Solve an initial value problem using time-stepping.
 
     Solves dy/dt = f(t, y) from t_span[0] to t_span[1].
@@ -20,6 +20,7 @@ def solve_ivp(fun, t_span, y0, method="symplectic_euler", dt=1e-3, args=(),
         args: Additional arguments to pass to fun
         post_step: Optional callback f(t, y) -> y applied after each step,
             e.g. to enforce boundary conditions. Must return the modified y.
+        save_interval: Save solution every N steps (default: 1 = save all)
 
     Returns:
         ODEResult with t (time array) and y (solution array)
@@ -34,21 +35,25 @@ def solve_ivp(fun, t_span, y0, method="symplectic_euler", dt=1e-3, args=(),
     t = np.arange(t_start, t_end, dt)
     n_steps = len(t)
 
-    # Allocate solution array
-    y = np.zeros((n_steps,) + y0.shape)
-    y[0] = y0
-
-    # Time stepping loop
+    # Time stepping with selective saving
+    y = y0.copy()
+    t_save = [t[0]]
+    y_save = [y0.copy()]
     nfev = 0
+
     for i in range(1, n_steps):
-        y[i], n_evals = step_func(fun, t[i-1], y[i-1], dt, args)
+        y, n_evals = step_func(fun, t[i-1], y, dt, args)
         if post_step is not None:
-            y[i] = post_step(t[i], y[i])
+            y = post_step(t[i], y)
         nfev += n_evals
 
+        if i % save_interval == 0:
+            t_save.append(t[i])
+            y_save.append(y.copy())
+
     return ODEResult(
-        t=t,
-        y=y,
+        t=np.array(t_save),
+        y=np.array(y_save),
         success=True,
         message=f"Integration completed with {n_steps} steps",
         nfev=nfev
