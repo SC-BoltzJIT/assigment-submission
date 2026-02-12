@@ -8,10 +8,11 @@ import numpy as np
 import pytest
 
 from scicomp3.core.grid import Grid2D
+from scicomp3.ode.solver import solve_ivp
 from scicomp3.pde.diffusion import (
-    solve_diffusion,
-    diffusion_step,
+    diffusion2d_rhs,
     apply_diffusion_bc,
+    diffusion_stable_dt,
     analytical_solution,
 )
 
@@ -19,6 +20,36 @@ from scicomp3.pde.diffusion import (
 # Parameters for tests
 N = 20  # smaller grid for faster tests
 D = 1.0
+
+
+def _solve_diffusion(grid, D=1.0, dt=None, T_sim=1.0, c0=None, save_interval=1):
+    """Solve diffusion equation using solve_ivp (test helper)."""
+    dx = grid.dx
+    if dt is None:
+        dt = diffusion_stable_dt(D, dx)
+
+    # Check stability
+    alpha = dt * D / (dx ** 2)
+    if 4 * alpha > 1:
+        raise ValueError(f"Unstable: 4*α = {4*alpha:.3f} > 1. Reduce dt.")
+
+    # Initial condition
+    if c0 is not None:
+        c = c0.copy()
+    else:
+        c = np.zeros((grid.N + 1, grid.N + 1))
+    apply_diffusion_bc(c)
+
+    def post_step(t, y):
+        apply_diffusion_bc(y)
+        return y
+
+    result = solve_ivp(
+        diffusion2d_rhs, t_span=(0, T_sim), y0=c,
+        method="forward_euler", dt=dt, args=(D, dx),
+        post_step=post_step, save_interval=save_interval,
+    )
+    return result.t, result.y
 
 
 @pytest.fixture
@@ -32,26 +63,26 @@ class TestDiffusionSolver:
 
     def test_boundary_conditions_bottom(self, grid):
         """Bottom boundary should be c=0."""
-        t, c_history = solve_diffusion(grid, D=D, T_sim=0.1)
+        t, c_history = _solve_diffusion(grid, D=D, T_sim=0.1)
         for c in c_history:
             assert np.allclose(c[:, 0], 0), "Bottom boundary not zero"
 
     def test_boundary_conditions_top(self, grid):
         """Top boundary should be c=1."""
-        t, c_history = solve_diffusion(grid, D=D, T_sim=0.1)
+        t, c_history = _solve_diffusion(grid, D=D, T_sim=0.1)
         for c in c_history:
             assert np.allclose(c[:, -1], 1), "Top boundary not one"
 
     def test_initial_condition(self, grid):
         """Initial condition should be c=0 in interior, with BCs applied."""
-        t, c_history = solve_diffusion(grid, D=D, T_sim=0.01)
+        t, c_history = _solve_diffusion(grid, D=D, T_sim=0.01)
         c0 = c_history[0]
         # Interior should be zero at t=0
         assert np.allclose(c0[:, 1:-1], 0), "Initial interior not zero"
 
     def test_convergence_to_steady_state(self, grid):
         """Long simulation should approach steady state c(y) = y."""
-        t, c_history = solve_diffusion(grid, D=D, T_sim=1.0, save_interval=100)
+        t, c_history = _solve_diffusion(grid, D=D, T_sim=1.0, save_interval=100)
         c_final = c_history[-1]
 
         # Steady state is c = y
@@ -62,7 +93,7 @@ class TestDiffusionSolver:
 
     def test_matches_analytical_solution(self, grid):
         """Numerical solution should match analytical solution."""
-        t, c_history = solve_diffusion(grid, D=D, T_sim=0.1, save_interval=10)
+        t, c_history = _solve_diffusion(grid, D=D, T_sim=0.1, save_interval=10)
 
         # Check at a few time points
         for i in [len(t) // 4, len(t) // 2, -1]:
@@ -80,7 +111,7 @@ class TestDiffusionSolver:
         """Solver should raise error for unstable time step."""
         # Very large dt should be unstable
         with pytest.raises(ValueError, match="Unstable"):
-            solve_diffusion(grid, D=D, T_sim=0.01, dt=1.0)
+            _solve_diffusion(grid, D=D, T_sim=0.01, dt=1.0)
 
 
 class TestAnalyticalSolution:

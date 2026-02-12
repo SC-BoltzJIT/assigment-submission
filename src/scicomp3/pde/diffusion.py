@@ -36,6 +36,22 @@ def apply_diffusion_bc(c):
     c[:, -1] = 1  # top boundary (y=1)
 
 
+def diffusion_stable_dt(D, dx, safety=0.9):
+    """Compute a stable time step for the explicit diffusion scheme.
+
+    Stability condition: 4δtD/δx² ≤ 1  →  δt ≤ δx²/(4D)
+
+    Args:
+        D: Diffusion coefficient
+        dx: Grid spacing
+        safety: Safety factor (default: 0.9, i.e. 90% of max stable dt)
+
+    Returns:
+        dt: Stable time step
+    """
+    return safety * dx ** 2 / (4 * D)
+
+
 def diffusion2d_rhs(t, c, D, dx):
     """Compute RHS of 2D diffusion equation: dc/dt = D∇²c.
 
@@ -61,100 +77,6 @@ def diffusion2d_rhs(t, c, D, dx):
     laplacian = (c_ip + c_im + c_jp + c_jm - 4 * c) / dx**2
 
     return D * laplacian
-
-
-def diffusion_step(c, D, dx, dt):
-    """Perform one explicit time step of the diffusion equation.
-
-    Uses forward Euler: c^{k+1} = c^k + dt * D∇²c^k
-
-    Args:
-        c: Current concentration field (N+1 x N+1 array)
-        D: Diffusion coefficient
-        dx: Grid spacing
-        dt: Time step
-
-    Returns:
-        c_new: Updated concentration field
-    """
-    alpha = dt * D / (dx ** 2)
-
-    # Check stability
-    if 4 * alpha > 1:
-        raise ValueError(f"Unstable: 4*α = {4*alpha:.3f} > 1. Reduce dt or increase dx.")
-
-    # Forward Euler step using diffusion RHS
-    c_new = c + dt * diffusion2d_rhs(0, c, D, dx)
-
-    # Apply boundary conditions
-    apply_diffusion_bc(c_new)
-
-    return c_new
-
-
-def solve_diffusion(grid, D=1.0, dt=None, T_sim=1.0, c0=None, save_interval=1):
-    """Solve the 2D time-dependent diffusion equation.
-
-    Delegates to solve_ivp with forward Euler method. The diffusion equation
-    dc/dt = D∇²c is an initial value problem solved by:
-        - RHS function: diffusion2d_rhs (computes D∇²c)
-        - Method: forward Euler (explicit)
-        - post_step: apply_diffusion_bc (enforce boundary conditions)
-
-    Args:
-        grid: Grid2D object defining the spatial discretization
-        D: Diffusion coefficient (default: 1.0)
-        dt: Time step (default: computed from stability condition)
-        T_sim: Total simulation time
-        c0: Initial concentration field (default: zeros with BC applied)
-        save_interval: Save solution every N steps (default: 1 = save all)
-
-    Returns:
-        t: Array of time points
-        c_history: Array of concentration fields at each saved time point
-    """
-    from ..ode.solver import solve_ivp
-
-    N = grid.N
-    dx = grid.dx
-
-    # Compute stable time step if not provided
-    if dt is None:
-        # Use 90% of maximum stable dt
-        dt = 0.9 * dx ** 2 / (4 * D)
-
-    # Check stability
-    alpha = dt * D / (dx ** 2)
-    if 4 * alpha > 1:
-        raise ValueError(f"Unstable: 4*α = {4*alpha:.3f} > 1. Reduce dt.")
-
-    # Initialize concentration field
-    if c0 is not None:
-        c = c0.copy()
-    else:
-        c = np.zeros((N + 1, N + 1))
-
-    # Apply boundary conditions
-    apply_diffusion_bc(c)
-
-    # Boundary conditions as post_step callback
-    def post_step(t, y):
-        apply_diffusion_bc(y)
-        return y
-
-    # Solve as IVP: dc/dt = D∇²c
-    result = solve_ivp(
-        diffusion2d_rhs,
-        t_span=(0, T_sim),
-        y0=c,
-        method="forward_euler",
-        dt=dt,
-        args=(D, dx),
-        post_step=post_step,
-        save_interval=save_interval,
-    )
-
-    return result.t, result.y
 
 
 def analytical_solution(y, t, D=1.0, n_terms=50):
