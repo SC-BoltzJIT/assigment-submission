@@ -2,3 +2,7 @@ __pycache__
 *.png
 *.gif
 *.pyc
+dist/
+build/
+*.egg-info/
+uv.lock

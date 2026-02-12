@@ -8,10 +8,6 @@ Uses sin(5πx) initial condition.
 import numpy as np
 import matplotlib.pyplot as plt
 
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from scicomp3 import solve_ivp, wave1d_rhs
 
 

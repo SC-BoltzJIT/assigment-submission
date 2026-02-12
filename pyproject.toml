@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scicomp3"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+plot = ["matplotlib"]
+test = ["pytest"]
+dev = ["matplotlib", "pytest"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/scicomp3"]
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+testpaths = ["tests"]

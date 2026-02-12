@@ -1,0 +1,26 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke-a1_1p1:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install package with test dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Smoke test (quick import check)
+        run: python -c "from scicomp3 import solve_ivp, wave1d_rhs; print('Import OK')"
+
+      - name: Run pytest
+        run: pytest tests/ -v
