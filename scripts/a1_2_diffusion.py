@@ -100,7 +100,7 @@ for idx, (t_target, color) in enumerate(zip(target_times[1:], colors)):
     # Analytical solution
     c_analytical = analytical_solution(grid.y, t_actual, D=D)
 
-    ax1.plot(c_numerical, grid.y, '-', color=color, linewidth=2,
+    ax1.plot(c_numerical, grid.y, 'o', color=color, markersize=4,
              label=f't={t_actual:.3f} (num)')
     ax1.plot(c_analytical, grid.y, '--', color=color, linewidth=1.5,
              label=f't={t_actual:.3f} (ana)')
