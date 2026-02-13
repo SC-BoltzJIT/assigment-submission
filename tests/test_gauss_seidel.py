@@ -21,11 +21,17 @@ def grid():
     return Grid2D(N=N, L=1.0)
 
 
+def fixed_bc(k, y):
+    """Enforce diffusion BCs after each iteration."""
+    apply_diffusion_bc(y)
+    return y
+
+
 @pytest.fixture
 def gs_result(grid):
     c0 = np.zeros(grid.shape)
     apply_diffusion_bc(c0)
-    return solve_bvp(c0, method="gauss_seidel", bc_func=apply_diffusion_bc,
+    return solve_bvp(c0, method="gauss_seidel", post_step=fixed_bc,
                      tol=1e-5, max_iter=100_000)
 
 
@@ -43,7 +49,7 @@ class TestGaussSeidelIteration:
         """Gauss-Seidel should converge faster than Jacobi."""
         c0 = np.zeros(grid.shape)
         apply_diffusion_bc(c0)
-        jacobi = solve_bvp(c0, method="jacobi", bc_func=apply_diffusion_bc,
+        jacobi = solve_bvp(c0, method="jacobi", post_step=fixed_bc,
                            tol=1e-5, max_iter=100_000)
         assert gs_result.n_iter < jacobi.n_iter, (
             f"GS ({gs_result.n_iter}) not faster than Jacobi ({jacobi.n_iter})"

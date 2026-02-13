@@ -5,8 +5,8 @@ from ..core.result import BVPResult
 from .methods import METHODS
 
 
-def solve_bvp(y0, method="jacobi", bc_func=None, tol=1e-5, max_iter=100_000,
-              **kwargs):
+def solve_bvp(y0, method="jacobi", tol=1e-5, max_iter=100_000,
+              post_step=None, **kwargs):
     """Solve a steady-state BVP using iterative relaxation.
 
     Solves nabla^2 y = 0 by iterating until convergence.
@@ -14,10 +14,10 @@ def solve_bvp(y0, method="jacobi", bc_func=None, tol=1e-5, max_iter=100_000,
     Args:
         y0: Initial guess array (e.g. N+1 x N+1)
         method: Iterative method name (see METHODS registry)
-        bc_func: Callable that applies boundary conditions in-place, bc_func(y).
-            Called on y0 and after every iteration step.
         tol: Convergence tolerance for max-norm criterion (default: 1e-5)
         max_iter: Maximum number of iterations (default: 100,000)
+        post_step: Optional callback f(k, y) -> y applied after each step,
+            e.g. to enforce boundary conditions. Must return the modified y.
         **kwargs: Additional arguments passed to the step function
             (e.g. omega for SOR)
 
@@ -31,14 +31,16 @@ def solve_bvp(y0, method="jacobi", bc_func=None, tol=1e-5, max_iter=100_000,
 
     # Initialise from y0, enforce BCs
     y = y0.copy()
-    if bc_func is not None:
-        bc_func(y)
+    if post_step is not None:
+        y = post_step(0, y)
 
     delta_history = []
 
     for k in range(max_iter):
         y_old = y.copy()
-        y = step_func(y, bc_func, **kwargs)
+        y = step_func(y, **kwargs)
+        if post_step is not None:
+            y = post_step(k + 1, y)
 
         # Convergence measure (Eq. 14): delta = max|y_new - y_old|
         delta = np.max(np.abs(y - y_old))

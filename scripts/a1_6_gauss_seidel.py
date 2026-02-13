@@ -13,6 +13,12 @@ from scicomp3.pde.diffusion import apply_diffusion_bc
 from scicomp3.bvp.solver import solve_bvp
 
 
+def fixed_bc(k, y):
+    """Enforce diffusion BCs after each iteration."""
+    apply_diffusion_bc(y)
+    return y
+
+
 # Parameters
 N = 50
 grid = Grid2D(N=N, L=1.0)
@@ -22,7 +28,7 @@ c0 = np.zeros(grid.shape)
 apply_diffusion_bc(c0)
 
 # Solve
-result = solve_bvp(c0, method="gauss_seidel", bc_func=apply_diffusion_bc, tol=1e-5)
+result = solve_bvp(c0, method="gauss_seidel", post_step=fixed_bc, tol=1e-5)
 
 print(f"Gauss-Seidel iteration: converged={result.converged}, "
       f"iterations={result.n_iter}, "

@@ -21,11 +21,17 @@ def grid():
     return Grid2D(N=N, L=1.0)
 
 
+def fixed_bc(k, y):
+    """Enforce diffusion BCs after each iteration."""
+    apply_diffusion_bc(y)
+    return y
+
+
 @pytest.fixture
 def jacobi_result(grid):
     c0 = np.zeros(grid.shape)
     apply_diffusion_bc(c0)
-    return solve_bvp(c0, method="jacobi", bc_func=apply_diffusion_bc,
+    return solve_bvp(c0, method="jacobi", post_step=fixed_bc,
                      tol=1e-5, max_iter=100_000)
 
 

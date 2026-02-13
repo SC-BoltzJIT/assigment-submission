@@ -5,13 +5,13 @@ Methods:
 - gauss_seidel: Gauss-Seidel iteration (updates in place)
 
 All methods have signature:
-    step(y, bc_func, **kwargs) -> y_new
+    step(y, **kwargs) -> y_new
 """
 
 import numpy as np
 
 
-def jacobi_step(y, bc_func, **kwargs):
+def jacobi_step(y, **kwargs):
     """One Jacobi iteration step (Eq. 12).
 
     c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^k_{i-1,j} + c^k_{i,j+1} + c^k_{i,j-1})
@@ -21,7 +21,6 @@ def jacobi_step(y, bc_func, **kwargs):
 
     Args:
         y: Current solution array (N+1 x N+1)
-        bc_func: Callable that applies boundary conditions in-place, bc_func(y)
 
     Returns:
         y_new: Updated solution array
@@ -30,11 +29,10 @@ def jacobi_step(y, bc_func, **kwargs):
         np.roll(y, -1, axis=0) + np.roll(y, 1, axis=0) +
         np.roll(y, -1, axis=1) + np.roll(y, 1, axis=1)
     )
-    bc_func(y_new)
     return y_new
 
 
-def gauss_seidel_step(y, bc_func, **kwargs):
+def gauss_seidel_step(y, **kwargs):
     """One Gauss-Seidel iteration step (Sec. 1.5).
 
     c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^{k+1}_{i-1,j}
@@ -48,7 +46,6 @@ def gauss_seidel_step(y, bc_func, **kwargs):
 
     Args:
         y: Current solution array (N+1 x N+1), modified in place
-        bc_func: Callable that applies boundary conditions in-place, bc_func(y)
 
     Returns:
         y: The same array, updated in place
@@ -60,7 +57,6 @@ def gauss_seidel_step(y, bc_func, **kwargs):
             i_minus = (i - 1) % n_i
             y[i, j] = 0.25 * (y[i_plus, j] + y[i_minus, j] +
                                y[i, j + 1] + y[i, j - 1])
-    bc_func(y)
     return y
 
 
