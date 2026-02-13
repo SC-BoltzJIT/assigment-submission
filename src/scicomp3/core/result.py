@@ -23,6 +23,22 @@ class ODEResult:
     message: str = ""
     nfev: int = 0
 
+@dataclass
+class BVPResult:
+    """Container for BVP iterative solver results.
+
+    Attributes:
+        y: Final solution array
+        converged: Whether convergence criterion was met
+        n_iter: Number of iterations performed
+        delta_history: Convergence measure delta at each iteration
+    """
+    y: np.ndarray
+    converged: bool = True
+    n_iter: int = 0
+    delta_history: np.ndarray = None
+
+
 def find_y(res: ODEResult, t):
     """Compute the y-value corresponding to the given t value"""
     for i in range(len(res.t)):
