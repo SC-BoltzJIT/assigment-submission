@@ -46,13 +46,24 @@ class TestGaussSeidelIteration:
         )
 
     def test_fewer_iterations_than_jacobi(self, gs_result, grid):
-        """Gauss-Seidel should converge faster than Jacobi."""
+        """Gauss-Seidel should converge ~2x faster than Jacobi.
+
+        Theoretical asymptotic ratio: n_jacobi / n_gs ≈ 1 + cos(π/N) → 2.
+        In practice the ratio is lower (~1.7) because the convergence
+        criterion captures transient behaviour, not just the asymptotic rate.
+        """
         c0 = np.zeros(grid.shape)
         apply_diffusion_bc(c0)
         jacobi = solve_bvp(c0, method="jacobi", post_step=fixed_bc,
                            tol=1e-5, max_iter=100_000)
+        ratio = jacobi.n_iter / gs_result.n_iter
+        expected_ratio = 1 + np.cos(np.pi / N)  # ≈ 1.998 for N=50
         assert gs_result.n_iter < jacobi.n_iter, (
             f"GS ({gs_result.n_iter}) not faster than Jacobi ({jacobi.n_iter})"
+        )
+        assert 1.5 < ratio < expected_ratio + 0.1, (
+            f"Ratio {ratio:.3f} outside expected range [1.5, {expected_ratio + 0.1:.3f}] "
+            f"(Jacobi={jacobi.n_iter}, GS={gs_result.n_iter})"
         )
 
     def test_steady_state_profile(self, gs_result, grid):
