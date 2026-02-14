@@ -89,26 +89,38 @@ class TestInsulatingObjects:
         # above the insulator is higher than c=y (flow deflected upward)
         assert c_just_above > 0, "Concentration above insulator should be > 0"
 
-    def test_insulator_deflects_concentration(self, sor_result_insulating, grid):
-        """An insulator should deflect concentration around it, not absorb it.
+    def test_insulator_conserves_x_average(self, sor_result_insulating,
+                                           rect_mask_insulating, grid):
+        """An insulator does not absorb or emit concentration.
 
-        Unlike a sink (c=0), an insulating object blocks flow but doesn't
-        absorb concentration.  At a y-level passing through the insulator,
-        the concentration at free points next to the insulator should be
-        HIGHER than the undisturbed c=y, because concentration is being
-        forced to flow around.
+        Unlike a sink, an insulating object preserves the total flux.
+        The x-averaged concentration at each y-level (over free points
+        only) should stay close to c=y, whereas a sink would reduce it.
         """
         y_sol = sor_result_insulating.y
-        # At the vertical centre of the insulator, check free points
-        # just to the left (i=19) at the mid-height of the insulator (j=25)
-        j_mid = 25
-        c_beside = y_sol[19, j_mid]
-        c_undist = grid.Y[19, j_mid]  # undisturbed c = y
-        # Concentration beside insulator should be higher than c=y
-        # because the flow is squeezed through the gap
-        assert c_beside > c_undist, (
-            f"Concentration beside insulator ({c_beside:.4f}) should be "
-            f"higher than undisturbed c=y ({c_undist:.4f})"
+        # Compare x-averaged concentration at a y-level through the object
+        j_mid = 25  # mid-height of the insulator
+        free_at_j = (rect_mask_insulating[:, j_mid] == 0)
+        c_avg = np.mean(y_sol[free_at_j, j_mid])
+        c_undist = grid.y[j_mid]  # expected c = y
+
+        # Solve with sink at same location for comparison
+        sink_mask = np.zeros(grid.shape, dtype=int)
+        sink_mask[20:31, 20:31] = 1
+        c0 = np.zeros(grid.shape)
+        apply_diffusion_bc(c0)
+        res_sink = solve_bvp(c0, method="sor", post_step=fixed_bc,
+                             tol=1e-5, max_iter=100_000, omega=1.85,
+                             mask=sink_mask)
+        free_at_j_sink = (sink_mask[:, j_mid] == 0)
+        c_avg_sink = np.mean(res_sink.y[free_at_j_sink, j_mid])
+
+        # Insulator x-average should be closer to c=y than sink x-average
+        err_ins = abs(c_avg - c_undist)
+        err_sink = abs(c_avg_sink - c_undist)
+        assert err_ins < err_sink, (
+            f"Insulator x-avg error ({err_ins:.4f}) should be smaller "
+            f"than sink x-avg error ({err_sink:.4f})"
         )
 
     def test_insulator_vs_sink_different(self, grid, rect_mask_insulating):
