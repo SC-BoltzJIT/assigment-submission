@@ -7,12 +7,17 @@ Methods:
 
 All methods have signature:
     step(y, **kwargs) -> y_new
+
+All methods support an optional ``mask`` keyword argument (integer array,
+same shape as y).  Where mask[i,j] == 1 the point is an object (sink)
+and its concentration is forced to 0 instead of being updated by the
+stencil.  This is used for Assignment 1.6.K and for DLA in Set 2.
 """
 
 import numpy as np
 
 
-def jacobi_step(y, **kwargs):
+def jacobi_step(y, mask=None, **kwargs):
     """One Jacobi iteration step (Eq. 12).
 
     c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^k_{i-1,j} + c^k_{i,j+1} + c^k_{i,j-1})
@@ -22,6 +27,7 @@ def jacobi_step(y, **kwargs):
 
     Args:
         y: Current solution array (N+1 x N+1)
+        mask: Optional integer array (1 = object/sink, 0 = free)
 
     Returns:
         y_new: Updated solution array
@@ -30,10 +36,12 @@ def jacobi_step(y, **kwargs):
         np.roll(y, -1, axis=0) + np.roll(y, 1, axis=0) +
         np.roll(y, -1, axis=1) + np.roll(y, 1, axis=1)
     )
+    if mask is not None:
+        y_new[mask == 1] = 0.0
     return y_new
 
 
-def gauss_seidel_step(y, **kwargs):
+def gauss_seidel_step(y, mask=None, **kwargs):
     """One Gauss-Seidel iteration step (Sec. 1.5).
 
     c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^{k+1}_{i-1,j}
@@ -47,6 +55,7 @@ def gauss_seidel_step(y, **kwargs):
 
     Args:
         y: Current solution array (N+1 x N+1), modified in place
+        mask: Optional integer array (1 = object/sink, 0 = free)
 
     Returns:
         y: The same array, updated in place
@@ -54,6 +63,9 @@ def gauss_seidel_step(y, **kwargs):
     n_i, n_j = y.shape
     for j in range(1, n_j - 1):        # interior y-points
         for i in range(n_i):            # all x-points (periodic)
+            if mask is not None and mask[i, j]:
+                y[i, j] = 0.0
+                continue
             i_plus = (i + 1) % n_i
             i_minus = (i - 1) % n_i
             y[i, j] = 0.25 * (y[i_plus, j] + y[i_minus, j] +
@@ -61,7 +73,7 @@ def gauss_seidel_step(y, **kwargs):
     return y
 
 
-def sor_step(y, omega=1.5, **kwargs):
+def sor_step(y, omega=1.5, mask=None, **kwargs):
     """One SOR (Successive Over-Relaxation) iteration step (Sec. 1.6).
 
     c^{k+1}_{i,j} = (omega/4)(c^k_{i+1,j} + c^{k+1}_{i-1,j}
@@ -78,6 +90,7 @@ def sor_step(y, omega=1.5, **kwargs):
     Args:
         y: Current solution array (N+1 x N+1), modified in place
         omega: Relaxation parameter (default: 1.5)
+        mask: Optional integer array (1 = object/sink, 0 = free)
 
     Returns:
         y: The same array, updated in place
@@ -87,6 +100,9 @@ def sor_step(y, omega=1.5, **kwargs):
     w1 = 1.0 - omega
     for j in range(1, n_j - 1):        # interior y-points
         for i in range(n_i):            # all x-points (periodic)
+            if mask is not None and mask[i, j]:
+                y[i, j] = 0.0
+                continue
             i_plus = (i + 1) % n_i
             i_minus = (i - 1) % n_i
             y[i, j] = w4 * (y[i_plus, j] + y[i_minus, j] +
