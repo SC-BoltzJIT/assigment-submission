@@ -6,8 +6,8 @@ and convergence behaviour.
 
 Key physical differences:
 - Sink: absorbs concentration → creates a "shadow" below with lower c
-- Insulator: blocks flow → concentration is deflected around the object,
-  free points beside the insulator have HIGHER c than undisturbed c=y
+- Insulator: blocks diffusive flux → concentration accumulates above the
+  object (higher c) and is depleted below (lower c) along the centreline
 """
 
 import numpy as np
@@ -167,17 +167,22 @@ print("""
 Sink (c=0):
   - Object absorbs concentration → creates a "shadow" below with lower c.
   - Concentration below the sink is reduced; above is slightly increased.
-  - Fewer iterations than no object (more constrained system).
+  - Fewer iterations than no object: the Dirichlet constraint pins c=0
+    inside the object, reducing the number of unknowns. The solver has
+    a smaller "search space" and converges faster.
 
 Insulator (dc/dn=0):
-  - Object blocks diffusion → concentration deflects around it.
-  - Concentration beside the insulator is HIGHER than c=y (flow squeezed
-    through the gap between insulator and domain boundary).
-  - Below the insulator, c is slightly higher (flow deflected sideways).
-  - Above the insulator, c is slightly lower (flow hasn't yet recovered).
-  - More iterations than no object (flow must navigate around the obstacle).
-  - The final state still satisfies the same total flux from bottom to top
-    (conservation), but the field is distorted near the object.
+  - Object blocks diffusive flux → concentration must go around it.
+  - BELOW the insulator (at x=0.5): c is LOWER than c=y. The upward flux
+    from y=0 is blocked, so concentration cannot freely diffuse upward
+    and stays closer to the bottom boundary value (like a traffic jam).
+  - ABOVE the insulator (at x=0.5): c is HIGHER than c=y. Flux that went
+    around the sides converges and accumulates above the object.
+  - In the SIDE GAPS: the effect is smaller; c remains close to c=y.
+  - More iterations than no object: the Neumann BC adds coupling between
+    neighbours without fixing values, making the system less constrained.
+  - Total flux from bottom to top is conserved, but redistributed around
+    the obstacle.
 """)
 
 plt.show()
