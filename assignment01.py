@@ -1,16 +1,18 @@
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
+matplotlib.use("TkAgg")
 
 
 def wave_eq_deriv(state, t, dt=1e-3, c=1, L=1, N=100):
     """
     Compute the derivatives for the 1D wave equation, to use for a forward Euler integration scheme.
-    Takes as arguments: 
+    Takes as arguments:
      - current state vector [Ψ, Ψ_t];
-     - current time t; 
-     - wave speed c; 
-     - string length L; 
+     - current time t;
+     - wave speed c;
+     - string length L;
      - number of spatial points N.
     Returns the derivatives [dΨ/dt, d^2 Ψ/dt^2] as a numpy array.
     """
@@ -25,11 +27,11 @@ def wave_eq_deriv(state, t, dt=1e-3, c=1, L=1, N=100):
     dpsi_t_dt = c**2 * d2psi_dx2 # second deriv in time to update first deriv
 
     dpsi_dt = psi_t + dt * dpsi_t_dt # first deriv in time to update Ψ
-    
+
     # Check that the boundary conditions remain satisfied
     assert psi[0] == 0, f"Expected 0 at the boundary, got {d2psi_dx2[0]}"
     assert psi[-1] == 0, f"Expected 0 at the boundary, got {d2psi_dx2[-1]}"
-    
+
     return np.array([dpsi_dt, dpsi_t_dt])
 
 def integrate_euler(deriv_func, state0, dt=1e-3, T_sim=10, **kwargs):
@@ -48,7 +50,7 @@ def integrate_euler(deriv_func, state0, dt=1e-3, T_sim=10, **kwargs):
     # Create an array to hold the states at each time step
     states = np.zeros((len(time),) + state0.shape)
     # Fill it with the initial state
-    states[0] = state0 
+    states[0] = state0
     print(np.shape(states), np.shape(state0))
 
     # Perform the forward Euler integration
@@ -58,7 +60,7 @@ def integrate_euler(deriv_func, state0, dt=1e-3, T_sim=10, **kwargs):
         state = states[i-1] + dt * np.transpose(derivs)
         # Save the updated state
         states[i] = state
-    
+
     return time, states
 
 

@@ -7,6 +7,8 @@ Uses sin(5πx) initial condition.
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use("TkAgg")
 
 from scicomp3 import solve_ivp, wave1d_rhs
 
