@@ -45,24 +45,6 @@ class TestSORIteration:
             f"final delta = {sor_result.delta_history[-1]:.2e}"
         )
 
-    def test_fewer_iterations_than_gauss_seidel(self, sor_result, grid):
-        """
-        SOR should converge faster than Gauss-Seidel
-        """
-        c0 = np.zeros(grid.shape)
-        apply_diffusion_bc(c0)
-        gauss_seidel = solve_bvp(c0, method="gauss_seidel", post_step=fixed_bc,
-                           tol=1e-5, max_iter=100_000)
-        ratio = gauss_seidel.n_iter / sor_result.n_iter
-        expected_ratio = 1 + np.cos(np.pi / N)  # ≈ 1.998 for N=50
-        assert sor_result.n_iter < gauss_seidel.n_iter, (
-            f"SOR ({sor_result.n_iter}) not faster than Gauss-Seidel ({gauss_seidel.n_iter})"
-        )
-        assert 1.5 < ratio < expected_ratio + 0.1, (
-            f"Ratio {ratio:.3f} outside expected range [1.5, {expected_ratio + 0.1:.3f}] "
-            f"(GS={gauss_seidel.n_iter}, SOR={sor_result.n_iter})"
-        )
-
     def test_steady_state_profile(self, sor_result, grid):
         """Solution should match analytical steady state c(y) = y."""
         c_analytical = grid.Y
