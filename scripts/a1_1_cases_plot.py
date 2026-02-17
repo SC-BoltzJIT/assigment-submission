@@ -8,14 +8,26 @@ Runs all three initial conditions and generates plots:
 """
 
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from pathlib import Path
+import scienceplots
 
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent))
+matplotlib.use("TkAgg")
+plt.style.use("science")
+plt.rcParams.update({"font.size": 16})
 
-from scicomp3 import Grid1D, solve_ivp, wave1d_rhs
+
+# import sys
+
+# sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# from scicomp3 import Grid1D, solve_ivp, wave1d_rhs
+
+from scicomp3.core.grid import Grid2D
+from scicomp3.ode.solver import solve_ivp
 from scicomp3.pde.wave import (
+    wave1d_rhs,
     initial_condition_case_i,
     initial_condition_case_ii,
     initial_condition_case_iii,
@@ -32,18 +44,18 @@ def fixed_ends(t, y):
 # Parameters
 c = 1
 L = 1
-N = 90
+N = 90  # number grid points (N_intervals - 1)
 dt = 1e-3
-T_sim = 10
+T_sims = [5e-1, 2e-1, 10e-1]  # suitable simulation times per case, for nicer plotting
 
 # Setup grid
-grid = Grid1D(N=N, L=L)
+grid = Grid2D(N=N - 1, L=L)
 
 # Define test cases
 test_cases = [
-    ("Case i: sin(2πx)", initial_condition_case_i),
-    ("Case ii: sin(5πx)", initial_condition_case_ii),
-    ("Case iii: Localized", initial_condition_case_iii),
+    (r"Case i: sin($2\pi x$)", T_sims[0], initial_condition_case_i),
+    (r"Case ii: sin($5\pi x$)", T_sims[1], initial_condition_case_ii),
+    ("Case iii: Localized", T_sims[2], initial_condition_case_iii),
 ]
 
 # Output directory
@@ -52,7 +64,7 @@ output_dir.mkdir(parents=True, exist_ok=True)
 
 # Run each case
 results = []
-for name, ic_func in test_cases:
+for name, T_sim, ic_func in test_cases:
     print(f"Running {name}...")
 
     psi0 = ic_func(grid.x)
@@ -74,19 +86,29 @@ for name, ic_func in test_cases:
 for i, (name, result) in enumerate(results):
     amplitudes = result.y[:, :, 0]
 
-    fig, ax = plt.subplots(figsize=(6, 4))
-    for j in range(0, len(result.t), len(result.t)//51):
-        ax.plot(grid.x, amplitudes[j], color=plt.cm.cividis(j/len(result.t)))
+    fig, ax = plt.subplots(figsize=(4, 5))
+    for j in range(0, len(result.t), len(result.t) // 35):
+        ax.plot(grid.x, amplitudes[j], color=plt.cm.cividis(j / len(result.t)))
 
-    ax.set_xlabel('Position along string (x)')
-    ax.set_ylabel('String amplitude (Ψ)')
-    ax.set_title(f'Vibrating string over time - {name}')
+    ax.set_xlabel("Position along string (x)")
+    ax.set_ylabel(r"Amplitude ($\Psi$)")
+    fig.suptitle(name, bbox=dict(facecolor="none", edgecolor="black", pad=3.0))
 
-    cbar = fig.colorbar(plt.cm.ScalarMappable(cmap='cividis'), ax=ax, label='Time', ticks=np.linspace(0, 1, 3))
-    cbar.ax.set_yticklabels([f"{t:.1f}" for t in np.linspace(0, T_sim, 3)])
+    cbar = fig.colorbar(
+        plt.cm.ScalarMappable(cmap="cividis"),
+        ax=ax,
+        label="Time",
+        ticks=np.linspace(0, 1, 3),
+        location="top",
+        orientation="horizontal",
+    )
+    cbar.ax.set_xticklabels([f"{t:.1f}" for t in np.linspace(0, T_sims[i], 3)])
 
-    filename = output_dir / f"vibrating_string_over_time_case={i}_dt={dt}_Tsim={T_sim}_c={c}_L={L}_N={N}.png"
-    plt.savefig(filename, dpi=300)
+    filename = (
+        output_dir
+        / f"vibrating_string_over_time_case={i+1}_dt={dt}_Tsim={np.round(T_sims[i], 2)}_c={c}_L={L}_N={N}.png"
+    )
+    plt.savefig(filename, dpi=300, bbox_inches="tight")
     print(f"Saved: {filename}")
 
 plt.show()
