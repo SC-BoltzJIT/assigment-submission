@@ -1,4 +1,4 @@
-"""Convergence comparison: Jacobi vs Gauss-Seidel (Assignment 1.6.I).
+"""Convergence comparison: Jacobi vs Gauss-Seidel vs SOR (Assignment 1.6.I).
 
 Shows how the convergence measure delta (Eq. 14) depends on the number
 of iterations k for each method. Log-lin plot (semilogy).
@@ -29,10 +29,16 @@ apply_diffusion_bc(c0)
 # Solve with both methods
 jacobi = solve_bvp(c0, method="jacobi", post_step=fixed_bc, tol=tol)
 gs = solve_bvp(c0, method="gauss_seidel", post_step=fixed_bc, tol=tol)
+omega_list = np.linspace(1.3, 1.9, 4)
+sor_list = [solve_bvp(c0, method="sor", post_step=fixed_bc, tol=tol, omega = om)
+            for om in omega_list]
+
 
 print(f"Jacobi:       {jacobi.n_iter} iterations, final delta={jacobi.delta_history[-1]:.2e}")
 print(f"Gauss-Seidel: {gs.n_iter} iterations, final delta={gs.delta_history[-1]:.2e}")
 print(f"Ratio (Jacobi / GS): {jacobi.n_iter / gs.n_iter:.2f}")
+for sor, omega in zip(sor_list, omega_list):
+    print(f"SOR (ω={omega:.1f}):  {sor.n_iter} iterations, final delta={sor.delta_history[-1]:.2e}")
 
 # Plot
 fig, ax = plt.subplots(figsize=(8, 5))
@@ -41,6 +47,9 @@ ax.semilogy(range(1, jacobi.n_iter + 1), jacobi.delta_history,
             label=f"Jacobi ({jacobi.n_iter} iter)")
 ax.semilogy(range(1, gs.n_iter + 1), gs.delta_history,
             label=f"Gauss-Seidel ({gs.n_iter} iter)")
+for sor, omega in zip(sor_list, omega_list):
+    ax.semilogy(range(1, sor.n_iter + 1), sor.delta_history,
+            label=f"SOR, $\\omega={omega:.1f}$ ({sor.n_iter} iter)")
 
 ax.axhline(tol, color="gray", linestyle=":", linewidth=0.8, label=rf"$\epsilon = {tol}$")
 ax.set_xlabel("Iteration k")
