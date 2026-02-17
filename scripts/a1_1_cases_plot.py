@@ -17,14 +17,7 @@ matplotlib.use("TkAgg")
 plt.style.use("science")
 plt.rcParams.update({"font.size": 16})
 
-
-# import sys
-
-# sys.path.insert(0, str(Path(__file__).parent.parent))
-
-# from scicomp3 import Grid1D, solve_ivp, wave1d_rhs
-
-from scicomp3.core.grid import Grid2D
+from scicomp3.core.grid import Grid1D
 from scicomp3.ode.solver import solve_ivp
 from scicomp3.pde.wave import (
     wave1d_rhs,
@@ -49,7 +42,7 @@ dt = 1e-3
 T_sims = [5e-1, 2e-1, 10e-1]  # suitable simulation times per case, for nicer plotting
 
 # Setup grid
-grid = Grid2D(N=N - 1, L=L)
+grid = Grid1D(N=N - 1, L=L)
 
 # Define test cases
 test_cases = [

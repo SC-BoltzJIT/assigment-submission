@@ -14,6 +14,7 @@ class Grid1D:
         dx: Grid spacing (computed as L/N)
         x: Array of grid point coordinates
     """
+
     N: int
     L: float = 1.0
     dx: float = field(init=False)
@@ -21,7 +22,7 @@ class Grid1D:
 
     def __post_init__(self):
         self.dx = self.L / self.N
-        self.x = np.arange(self.N) * self.dx
+        self.x = np.arange(self.N + 1) * self.dx
 
     @property
     def shape(self) -> tuple:
@@ -44,6 +45,7 @@ class Grid2D:
         X: 2D meshgrid of x-coordinates
         Y: 2D meshgrid of y-coordinates
     """
+
     N: int
     L: float = 1.0
     dx: float = field(init=False)
@@ -56,7 +58,7 @@ class Grid2D:
         self.dx = self.L / self.N
         self.x = np.linspace(0, self.L, self.N + 1)
         self.y = np.linspace(0, self.L, self.N + 1)
-        self.X, self.Y = np.meshgrid(self.x, self.y, indexing='ij')
+        self.X, self.Y = np.meshgrid(self.x, self.y, indexing="ij")
 
     @property
     def shape(self) -> tuple:
