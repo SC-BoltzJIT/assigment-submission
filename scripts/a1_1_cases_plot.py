@@ -37,7 +37,7 @@ def fixed_ends(t, y):
 # Parameters
 c = 1
 L = 1
-N = 90  # number grid points (N_intervals - 1)
+N = 90  # number grid points (N_intervals + 1)
 dt = 1e-3
 T_sims = [5e-1, 2e-1, 10e-1]  # suitable simulation times per case, for nicer plotting
 
@@ -80,22 +80,22 @@ for i, (name, result) in enumerate(results):
     amplitudes = result.y[:, :, 0]
 
     fig, ax = plt.subplots(figsize=(4, 5))
-    for j in range(0, len(result.t), len(result.t) // 35):
+    for j in range(0, len(result.t), len(result.t) // 20):
         ax.plot(grid.x, amplitudes[j], color=plt.cm.cividis(j / len(result.t)))
 
-    ax.set_xlabel("Position along string (x)")
-    ax.set_ylabel(r"Amplitude ($\Psi$)")
+    ax.set_xlabel(r"Position $x$ [m]")
+    ax.set_ylabel(r"Amplitude $\Psi$ [m]")
     fig.suptitle(name, bbox=dict(facecolor="none", edgecolor="black", pad=3.0))
 
     cbar = fig.colorbar(
         plt.cm.ScalarMappable(cmap="cividis"),
         ax=ax,
-        label="Time",
+        label="Time [s]",
         ticks=np.linspace(0, 1, 3),
         location="top",
         orientation="horizontal",
     )
-    cbar.ax.set_xticklabels([f"{t:.1f}" for t in np.linspace(0, T_sims[i], 3)])
+    cbar.ax.set_xticklabels([f"{t:.2f}" for t in np.linspace(0, T_sims[i], 3)])
 
     filename = (
         output_dir
