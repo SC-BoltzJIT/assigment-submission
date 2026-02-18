@@ -27,7 +27,7 @@ def wave1d_rhs(t, y, c, L, N):
     v = y[:, 1].copy()
 
     # Spatial discretization
-    dx = L / (N+1)
+    dx = L / (N + 1)
 
     # Second spatial derivative using central differences
     # d²Ψ/dx² ≈ (Ψ_{i+1} - 2Ψ_i + Ψ_{i-1}) / dx²
@@ -63,5 +63,29 @@ def initial_condition_case_iii(x):
     return psi
 
 
-def analytical_sol():
-    return
+def analytical_vibration_sol(x, t, ns=[2], cos_amps=[0], sin_amps=[1], c=1, L=1):
+    """Give the analytical solution for vibrating sting with fixed boundaries.
+
+    Args:
+        - x: Array,     contains spatial points to evaluate;
+        - t: float,     point in time;
+        - ns: list,     modes that contribute to the vibration;
+        - cos_amps: list,   amplitudes of the cosine contributions per mode;
+        - sin_amps: list,   amplitudes of the sine contributions per mode;
+        - c: float      wave speed;
+        - L: float      domain length.
+
+    Returns:
+        wave_amps: array of amplitudes along x with shape len(x)"""
+
+    wave_amps = np.zeros(len(x))
+    # if x is not provided as numpy array yet, convert it
+    x = np.array(x)
+
+    # loop through the contributing vibration modes, and add each contribution to the amplitudes
+    for i in range(len(ns)):
+        wave_amps += np.sin(ns[i] * np.pi * x / L) * (
+            cos_amps[i] * np.cos(ns[i] * np.pi * c * t / L)
+            + sin_amps[i] * np.sin(ns[i] * np.pi * c * t / L)
+        )
+    return wave_amps
