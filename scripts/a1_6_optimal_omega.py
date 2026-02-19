@@ -36,7 +36,7 @@ for i, omega in enumerate(omega_values):
     result = solve_bvp(c0, method="sor", post_step=fixed_bc, tol=1e-5, omega=omega)
     print(f"Finished computation in {result.n_iter} iterations.")
 
-    # Save 
+    # Save
     n_iterations[i] = result.n_iter
 
 
