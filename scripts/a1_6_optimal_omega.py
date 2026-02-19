@@ -19,9 +19,9 @@ def fixed_bc(k, y):
 # Parameters
 N = 50
 grid = Grid2D(N=N, L=1.0)
-n_omega_values = 41
-omega_min = 0.0
-omega_max = 2.0
+n_omega_values = 39
+omega_min = 0.05
+omega_max = 1.95
 
 omega_values = np.linspace(omega_min, omega_max, n_omega_values)
 n_iterations = np.empty(n_omega_values)
@@ -32,7 +32,7 @@ apply_diffusion_bc(c0)
 
 for i, omega in enumerate(omega_values):
     # Solve
-    print(f"Solving problem {i}/{n_omega_values} ...")
+    print(f"Solving problem {i+1}/{n_omega_values} ...")
     result = solve_bvp(c0, method="sor", post_step=fixed_bc, tol=1e-5, omega=omega)
     print(f"Finished computation in {result.n_iter} iterations.")
 
