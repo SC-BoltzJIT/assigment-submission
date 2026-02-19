@@ -4,10 +4,12 @@ import numpy as np
 from ..core.result import BVPResult
 from .methods import METHODS
 from ..objects.insulator import get_insulator_grid
+from ..objects.sink import get_sink_grid
 
 
 def solve_bvp(y0, method="jacobi", tol=1e-5, max_iter=100_000,
-              post_step=None, insulator_coordinates=None, **kwargs):
+              post_step=None, insulator_coordinates=None,
+              sink_coordinates=None, **kwargs):
     """Solve a steady-state BVP using iterative relaxation.
 
     Solves nabla^2 y = 0 by iterating until convergence.
@@ -35,12 +37,18 @@ def solve_bvp(y0, method="jacobi", tol=1e-5, max_iter=100_000,
     if post_step is not None:
         y = post_step(0, y)
 
-    # Initialise insulating object grid
+    # Initialise insulator mask
     is_insulator = get_insulator_grid(len(y) - 1, insulator_coordinates)
+    y[is_insulator] = 1
+
+    # Initialise sink mask
+    is_sink = get_sink_grid(len(y) - 1, sink_coordinates)
+    y[is_sink] = 0
+
 
     # Construct step function
     make_step = METHODS[method]
-    step_func = make_step(is_insulator, **kwargs)
+    step_func = make_step(is_insulator, is_sink, **kwargs)
 
     delta_history = []
 
