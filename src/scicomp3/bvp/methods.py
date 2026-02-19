@@ -1,12 +1,24 @@
 """Iterative methods for BVP (steady-state) solvers.
 
-Methods:
-- jacobi: Jacobi iteration (requires two arrays, cannot update in place)
-- gauss_seidel: Gauss-Seidel iteration (updates in place)
-- sor: Successive Over Relaxation (includes an overcorrection and parameter omega)
+Each method is provided as a setup function that takes the grid configuration
+(insulator mask, omega, etc.) and returns the iteration step function to be
+used by the solver. All returned step functions have a uniform signature and
+can be used interchangeably.
 
-All methods have signature:
-    step(y, **kwargs) -> y_new
+Setup functions:
+- make_jacobi_step:       Jacobi iteration (vectorised; returns a new array)
+- make_gauss_seidel_step: Gauss-Seidel iteration (updates in place)
+- make_sor_step:          Successive Over-Relaxation (updates in place;
+                          requires omega in [0, 2])
+
+All returned step functions have signature:
+    step(y, **kwargs) -> y
+
+If the grid contains insulating objects, the setup function returns a variant
+that excludes insulating neighbours from the average. Otherwise, a faster
+variant without insulator handling is returned.
+
+The METHODS registry maps string keys to setup functions
 """
 
 import numpy as np
@@ -28,18 +40,26 @@ def _compute_jacobi_weights(is_insulator):
 
 
 def make_jacobi_step(is_insulator, **kwargs):
-    """Make function for one Jacobi iteration step (Eq. 12).
+    """Return a Jacobi iteration step function.
 
-    c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^k_{i-1,j} + c^k_{i,j+1} + c^k_{i,j-1})
+    The returned function computes one Jacobi iteration step (Eq. 12):
+
+        c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^k_{i-1,j} + c^k_{i,j+1} + c^k_{i,j-1})
 
     Uses np.roll for the five-point stencil (periodic in x via wrap-around).
-    Requires two arrays — returns a new array, does not modify y.
+    Requires two arrays — the returned function does not modify y in place.
+
+    If insulators are present, insulating neighbours are excluded from the
+    average and the denominator is adjusted accordingly. Insulator points
+    are left unchanged.
 
     Args:
-        y: Current solution array (N+1 x N+1)
+        is_insulator: Boolean array of shape (N+1 x N+1), True at insulating
+                      grid points.
 
     Returns:
-        y_new: Updated solution array
+        step: A function with signature step(y, **kwargs) -> y_new that
+              performs one Jacobi iteration step.
     """
     if np.any(is_insulator):
         jacobi_weights = _compute_jacobi_weights(is_insulator)
@@ -70,22 +90,30 @@ def make_jacobi_step(is_insulator, **kwargs):
 
 
 def make_gauss_seidel_step(is_insulator, **kwargs):
-    """Make function for one Gauss-Seidel iteration step (Sec. 1.5).
+    """Return a Gauss-Seidel iteration step function.
 
-    c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^{k+1}_{i-1,j}
-                         + c^k_{i,j+1} + c^{k+1}_{i,j-1})
+    The returned function computes one Gauss-Seidel iteration step (Sec. 1.5):
+
+        c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^{k+1}_{i-1,j}
+                             + c^k_{i,j+1} + c^{k+1}_{i,j-1})
 
     Uses already-updated values as soon as they are available.
     Sweeps rows: incrementing i for fixed j (as stated in the assignment).
-    Updates in place — returns the same (modified) array.
+    The returned function updates y in place and returns the same array.
 
     Periodic x boundary is handled via modular indexing.
 
+    If insulators are present, insulating neighbours are excluded from the
+    average and the denominator is adjusted accordingly. Insulator points
+    are left unchanged.
+
     Args:
-        y: Current solution array (N+1 x N+1), modified in place
+        is_insulator: Boolean array of shape (N+1 x N+1), True at insulating
+                      grid points.
 
     Returns:
-        y: The same array, updated in place
+        step: A function with signature step(y, **kwargs) -> y that performs
+              one Gauss-Seidel iteration step, modifying y in place.
     """
     if np.any(is_insulator):
         def gauss_seidel_step_with_insulator(y, **kwargs):
@@ -117,20 +145,39 @@ def make_gauss_seidel_step(is_insulator, **kwargs):
 
 
 def make_sor_step(is_insulator, omega: float, **kwargs):
-    """
-    Make function for one Successive Over Relaxation (SOR) step with parameter omega (ω).
+    """Return a Successive Over-Relaxation (SOR) iteration step function.
 
-    c^{k+1}_{i,j} = (ω/4)(c^k_{i+1,j} + c^{k+1}_{i-1,j}
-                          + c^k_{i,j+1} + c^{k+1}_{i,j-1})
-                    + (1-ω)c^{k}_{i,j}
+    The returned function computes one SOR step:
 
-    Parameter omega should be between 0 and 2.
+        c^{k+1}_{i,j} = (ω/4)(c^k_{i+1,j} + c^{k+1}_{i-1,j}
+                              + c^k_{i,j+1} + c^{k+1}_{i,j-1})
+                        + (1-ω) c^k_{i,j}
+
+    SOR generalises Gauss-Seidel: setting omega=1 recovers Gauss-Seidel exactly.
+    Values of omega in (1, 2) over-relax and typically accelerate convergence;
+    values in (0, 1) under-relax. omega must be in [0, 2].
+
+    Uses already-updated values as soon as they are available.
+    Sweeps rows: incrementing i for fixed j (as stated in the assignment).
+    The returned function updates y in place and returns the same array.
+
+    Periodic x boundary is handled via modular indexing.
+
+    If insulators are present, insulating neighbours are excluded from the
+    average and the denominator is adjusted accordingly. Insulator points
+    are left unchanged.
 
     Args:
-        y: Current solution array (N+1 x N+1), modified in place
+        is_insulator: Boolean array of shape (N+1 x N+1), True at insulating
+                      grid points.
+        omega: Relaxation parameter, must be in [0, 2].
+
+    Raises:
+        ValueError: If omega is outside [0, 2].
 
     Returns:
-        y: The same array, updated in place
+        step: A function with signature step(y, **kwargs) -> y that performs
+              one SOR iteration step, modifying y in place.
     """
     if not (0 <= omega <= 2):
         raise ValueError(f"omega must be in [0, 2], got {omega:.2f}")
@@ -146,7 +193,7 @@ def make_sor_step(is_insulator, omega: float, **kwargs):
                     i_plus = (i + 1) % n_i
                     i_minus = (i - 1) % n_i
                     coords = [(i_plus, j), (i_minus, j), (i, j + 1), (i, j - 1)]
-                    new_value = np.mean([y[coord] for coord in coords if is_insulator[coord] == 0])
+                    new_value = np.mean([y[coord] for coord in coords if not is_insulator[coord]])
                     if not np.isnan(new_value):
                         y[i,j] = omega * new_value + (1 - omega) * y[i, j]
             return y
@@ -164,7 +211,6 @@ def make_sor_step(is_insulator, omega: float, **kwargs):
             return y
         return sor_step
 
-# Method registry (Strategy Pattern) — mirrors ode/methods.py METHODS
 METHODS = {
     "jacobi": make_jacobi_step,
     "gauss_seidel": make_gauss_seidel_step,
