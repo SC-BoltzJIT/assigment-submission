@@ -3,15 +3,22 @@
 Methods:
 - jacobi: Jacobi iteration (requires two arrays, cannot update in place)
 - gauss_seidel: Gauss-Seidel iteration (updates in place)
+- sor_step: Successive Over Relaxation (SOR) iteration (updates in place, with relaxation parameter omega)
 
 All methods have signature:
     step(y, **kwargs) -> y_new
+
+All methods support an optional ``mask`` keyword argument (integer array, same shape as y)
+to handle objects, such as sinks and insulators:
+    - mask == 0: normal point (default)
+    - mask == 1: sink (c = 0)
+    - mask == 2: insulator (no update, c unchanged)
 """
 
 import numpy as np
 
 
-def jacobi_step(y, **kwargs):
+def jacobi_step(y, mask=None, **kwargs):
     """One Jacobi iteration step (Eq. 12).
 
     c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^k_{i-1,j} + c^k_{i,j+1} + c^k_{i,j-1})
@@ -21,6 +28,7 @@ def jacobi_step(y, **kwargs):
 
     Args:
         y: Current solution array (N+1 x N+1)
+        mask: Optional integer array (0 = free, 1 = sink, 2 = insulator)
 
     Returns:
         y_new: Updated solution array
@@ -29,6 +37,13 @@ def jacobi_step(y, **kwargs):
         np.roll(y, -1, axis=0) + np.roll(y, 1, axis=0) +
         np.roll(y, -1, axis=1) + np.roll(y, 1, axis=1)
     )
+
+    if mask is not None:
+        # Apply mask: sink (Dirichlet c=0))
+        y_new = np.where(mask == 1, 0, y_new)
+        # Apply mask: insulator (no update, c unchanged)
+        y_new = np.where(mask == 2, y, y_new)
+
     return y_new
 
 
