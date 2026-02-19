@@ -1,7 +1,7 @@
 """Iterative methods for BVP (steady-state) solvers.
 
 Each method is provided as a setup function that takes the grid configuration
-(insulator mask, omega, etc.) and returns the iteration step function to be
+(insulator mask, sink_mask, omega, etc.) and returns the iteration step function to be
 used by the solver. All returned step functions have a uniform signature and
 can be used interchangeably.
 
@@ -39,7 +39,7 @@ def _compute_jacobi_weights(is_insulator):
     return neighbour_count
 
 
-def make_jacobi_step(is_insulator, **kwargs):
+def make_jacobi_step(is_insulator, is_sink, **kwargs):
     """Return a Jacobi iteration step function.
 
     The returned function computes one Jacobi iteration step (Eq. 12):
@@ -56,6 +56,7 @@ def make_jacobi_step(is_insulator, **kwargs):
     Args:
         is_insulator: Boolean array of shape (N+1 x N+1), True at insulating
                       grid points.
+        is_sink: Boolean array of shape (N+1 x N+1), True at sink grid points.
 
     Returns:
         step: A function with signature step(y, **kwargs) -> y_new that
@@ -77,6 +78,7 @@ def make_jacobi_step(is_insulator, **kwargs):
             )
             y_new = neighbour_sum / jacobi_weights
             y_new[is_insulator] = y[is_insulator]   # leave insulator points unchanged
+            y_new[is_sink] = 0                      # And keep sinks at zero
             return y_new
         return jacobi_step_with_insulator
     else:
@@ -85,11 +87,13 @@ def make_jacobi_step(is_insulator, **kwargs):
                 np.roll(y, -1, axis=0) + np.roll(y, 1, axis=0) +
                 np.roll(y, -1, axis=1) + np.roll(y, 1, axis=1)
             )
+            # Keep sinks at zero
+            y_new[is_sink] = 0
             return y_new
         return jacobi_step
 
 
-def make_gauss_seidel_step(is_insulator, **kwargs):
+def make_gauss_seidel_step(is_insulator, is_sink, **kwargs):
     """Return a Gauss-Seidel iteration step function.
 
     The returned function computes one Gauss-Seidel iteration step (Sec. 1.5):
@@ -110,6 +114,7 @@ def make_gauss_seidel_step(is_insulator, **kwargs):
     Args:
         is_insulator: Boolean array of shape (N+1 x N+1), True at insulating
                       grid points.
+        is_sink: Boolean array of shape (N+1 x N+1), True at sink grid points.
 
     Returns:
         step: A function with signature step(y, **kwargs) -> y that performs
@@ -120,7 +125,7 @@ def make_gauss_seidel_step(is_insulator, **kwargs):
             n_i, n_j = y.shape
             for j in range(1, n_j - 1):        # interior y-points
                 for i in range(n_i):            # all x-points (periodic)
-                    if is_insulator[i, j]:
+                    if is_insulator[i, j] or is_sink[i, j]:
                         continue
                     i_plus = (i + 1) % n_i
                     i_minus = (i - 1) % n_i
@@ -135,6 +140,8 @@ def make_gauss_seidel_step(is_insulator, **kwargs):
             n_i, n_j = y.shape
             for j in range(1, n_j - 1):        # interior y-points
                 for i in range(n_i):            # all x-points (periodic)
+                    if is_sink[i, j]:
+                        continue
                     i_plus = (i + 1) % n_i
                     i_minus = (i - 1) % n_i
                     y[i, j] = 0.25 * (y[i_plus, j] + y[i_minus, j] +
@@ -143,8 +150,7 @@ def make_gauss_seidel_step(is_insulator, **kwargs):
         return gauss_seidel_step
 
 
-
-def make_sor_step(is_insulator, omega: float, **kwargs):
+def make_sor_step(is_insulator, is_sink, omega: float, **kwargs):
     """Return a Successive Over-Relaxation (SOR) iteration step function.
 
     The returned function computes one SOR step:
@@ -170,6 +176,7 @@ def make_sor_step(is_insulator, omega: float, **kwargs):
     Args:
         is_insulator: Boolean array of shape (N+1 x N+1), True at insulating
                       grid points.
+        is_sink: Boolean array of shape (N+1 x N+1), True at sink grid points.
         omega: Relaxation parameter, must be in [0, 2].
 
     Raises:
@@ -188,7 +195,7 @@ def make_sor_step(is_insulator, omega: float, **kwargs):
             n_i, n_j = y.shape
             for j in range(1, n_j - 1):        # interior y-points
                 for i in range(n_i):            # all x-points (periodic)
-                    if is_insulator[i, j]:
+                    if is_insulator[i, j] or is_sink[i, j]:
                         continue
                     i_plus = (i + 1) % n_i
                     i_minus = (i - 1) % n_i
@@ -203,6 +210,8 @@ def make_sor_step(is_insulator, omega: float, **kwargs):
             n_i, n_j = y.shape
             for j in range(1, n_j - 1):        # interior y-points
                 for i in range(n_i):            # all x-points (periodic)
+                    if is_sink[i, j]:
+                        continue
                     i_plus = (i + 1) % n_i
                     i_minus = (i - 1) % n_i
                     y[i, j] = omega * 0.25 * (y[i_plus, j] + y[i_minus, j] +
