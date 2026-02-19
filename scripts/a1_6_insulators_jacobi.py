@@ -32,7 +32,7 @@ apply_diffusion_bc(c0)
 coords = construct_rectangle(21, 38, 34, 43)
 
 # Solve
-result = solve_bvp(c0, method="jacobi_with_insulator", post_step=fixed_bc, tol=1e-5,
+result = solve_bvp(c0, method="jacobi", post_step=fixed_bc, tol=1e-5,
                    insulator_coordinates=coords)
 
 print(f"Jacobi iteration: converged={result.converged}, "
