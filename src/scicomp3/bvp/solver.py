@@ -3,10 +3,11 @@
 import numpy as np
 from ..core.result import BVPResult
 from .methods import METHODS
+from ..objects.insulator import get_insulator_grid
 
 
 def solve_bvp(y0, method="jacobi", tol=1e-5, max_iter=100_000,
-              post_step=None, **kwargs):
+              post_step=None, insulator_coordinates=None, **kwargs):
     """Solve a steady-state BVP using iterative relaxation.
 
     Solves nabla^2 y = 0 by iterating until convergence.
@@ -18,6 +19,8 @@ def solve_bvp(y0, method="jacobi", tol=1e-5, max_iter=100_000,
         max_iter: Maximum number of iterations (default: 100,000)
         post_step: Optional callback f(k, y) -> y applied after each step,
             e.g. to enforce boundary conditions. Must return the modified y.
+        insulator_coordinates: An array of coordinates that signify which
+            points are insulating
         **kwargs: Additional arguments passed to the step function
             (e.g. omega for SOR)
 
@@ -27,12 +30,17 @@ def solve_bvp(y0, method="jacobi", tol=1e-5, max_iter=100_000,
     if method not in METHODS:
         raise ValueError(f"Unknown method: {method}. Available: {list(METHODS.keys())}")
 
-    step_func = METHODS[method]
-
     # Initialise from y0, enforce BCs
     y = y0.copy()
     if post_step is not None:
         y = post_step(0, y)
+
+    # Initialise insulating object grid
+    is_insulator = get_insulator_grid(len(y) - 1, insulator_coordinates)
+
+    # Construct step function
+    make_step = METHODS[method]
+    step_func = make_step(is_insulator, **kwargs)
 
     delta_history = []
 
