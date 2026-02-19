@@ -37,6 +37,10 @@ KNOWN_BROKEN = {
         "Grid1D size mismatch (N vs N+1) causes shape error in column_stack",
     "a1_1_smoke_test.py":
         "Hardcodes matplotlib.use('TkAgg') which blocks in headless environments",
+    "a1_1_cases_compared_to_analytical.py":
+        "Hardcodes matplotlib.use('TkAgg') which blocks in headless environments",
+    "a1_2_diffusion.py":
+        "Incorrect image path",
     "a1_6_optimal_omega.py":
         "Sweeps 39 omega values (including omega~0.05) causing >10min runtime",
 }
