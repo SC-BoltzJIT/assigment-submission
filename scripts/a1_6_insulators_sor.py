@@ -11,7 +11,7 @@ from pathlib import Path
 from scicomp3.core.grid import Grid2D
 from scicomp3.pde.diffusion import apply_diffusion_bc
 from scicomp3.bvp.solver import solve_bvp
-from scicomp3.objects.insulator import construct_rectangle
+from scicomp3.objects.shapes import construct_rectangle
 
 def fixed_bc(k, y):
     """Enforce diffusion BCs after each iteration."""
@@ -75,7 +75,7 @@ ax.set_ylabel(r"$\delta$ (max-norm)")
 ax.set_title(f"Convergence ({result.n_iter} iterations)")
 ax.grid(True)
 
-fig.suptitle("SOR method with an insulating object")
+fig.suptitle(f"SOR method with an insulating object ($\\omega = {omega:.1f}$)")
 
 plt.tight_layout()
 
