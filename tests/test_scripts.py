@@ -39,6 +39,8 @@ KNOWN_BROKEN = {
         "Hardcodes matplotlib.use('TkAgg') which blocks in headless environments",
     "a1_1_cases_compared_to_analytical.py":
         "Hardcodes matplotlib.use('TkAgg') which blocks in headless environments",
+    "a1_1_cases_plot.py":
+        "Hardcodes matplotlib.use('TkAgg') which blocks in headless environments",
     "a1_2_diffusion.py":
         "Incorrect image path",
     "a1_6_optimal_omega.py":
