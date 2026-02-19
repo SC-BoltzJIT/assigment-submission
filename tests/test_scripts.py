@@ -35,10 +35,6 @@ SLOW_SCRIPTS = {
 KNOWN_BROKEN = {
     "a1_1_cases_animation.py":
         "Grid1D size mismatch (N vs N+1) causes shape error in column_stack",
-    "a1_1_cases_compared_to_analytical.py":
-        "Grid1D size mismatch (N vs N+1) causes shape error in column_stack",
-    "a1_1_cases_plot.py":
-        "Requires 'scienceplots' package which is not installed",
     "a1_1_smoke_test.py":
         "Hardcodes matplotlib.use('TkAgg') which blocks in headless environments",
     "a1_6_optimal_omega.py":
