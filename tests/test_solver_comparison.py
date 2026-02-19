@@ -19,6 +19,7 @@ from scicomp3.pde.diffusion import diffusion2d_rhs
 
 # --- Wave Equation Fixtures ---
 
+
 @pytest.fixture
 def wave_params():
     """Common parameters for wave equation tests."""
@@ -36,7 +37,7 @@ def initial_condition(wave_params):
     """Initial condition with boundary conditions enforced."""
     N = wave_params["N"]
     L = wave_params["L"]
-    x = np.linspace(0, L, N + 1)
+    x = np.linspace(0, L, N)
     psi0 = np.sin(5 * np.pi * x)
     psi0[0] = 0
     psi0[-1] = 0
@@ -56,7 +57,7 @@ def old_solver_result(wave_params, initial_condition):
     x, psi0 = initial_condition
     N = wave_params["N"]
 
-    psi_t0 = np.zeros(N + 1)
+    psi_t0 = np.zeros(N)
     state0 = np.transpose([psi0, psi_t0])
 
     time_old, states_old = integrate_euler(
@@ -77,7 +78,7 @@ def new_solver_result(wave_params, initial_condition):
     x, psi0 = initial_condition
     N = wave_params["N"]
 
-    v0 = np.zeros(N + 1)
+    v0 = np.zeros(N)
     y0 = np.column_stack([psi0.copy(), v0])
 
     result = solve_ivp(
@@ -86,7 +87,7 @@ def new_solver_result(wave_params, initial_condition):
         y0=y0,
         method="symplectic_euler",
         dt=wave_params["dt"],
-        args=(wave_params["c"], wave_params["L"], N + 1),
+        args=(wave_params["c"], wave_params["L"], N),
         post_step=fixed_ends,
     )
     return result.y[:, :, 0]  # amplitudes only
@@ -96,11 +97,11 @@ def new_solver_result(wave_params, initial_condition):
 
 # Common diffusion parameters — used by both old and new fixtures.
 # Kept small for test speed and memory (old solver stores all time steps).
-DIFF_N = 50             # grid size
-DIFF_D = 0.05           # diffusion coefficient
-DIFF_DX = 1 / DIFF_N    # spatial step size
-DIFF_DT = 1e-4          # time step size
-DIFF_T_SIM = 0.1        # simulation time
+DIFF_N = 50  # grid size
+DIFF_D = 0.05  # diffusion coefficient
+DIFF_DX = 1 / DIFF_N  # spatial step size
+DIFF_DT = 1e-4  # time step size
+DIFF_T_SIM = 0.1  # simulation time
 
 
 @pytest.fixture
@@ -112,8 +113,12 @@ def old_solver_diffusion_result():
         c_next = np.copy(c)
 
         # add the horizontal and vertical diffusion terms
-        c_next += D * dt / dx**2 * (np.roll(c, -1, axis=0) - 2*c + np.roll(c, 1, axis=0))
-        c_next += D * dt / dx**2 * (np.roll(c, -1, axis=1) - 2*c + np.roll(c, 1, axis=1))
+        c_next += (
+            D * dt / dx**2 * (np.roll(c, -1, axis=0) - 2 * c + np.roll(c, 1, axis=0))
+        )
+        c_next += (
+            D * dt / dx**2 * (np.roll(c, -1, axis=1) - 2 * c + np.roll(c, 1, axis=1))
+        )
 
         # set boundary conditions (e.g., zero concentration at the bottom, 1 at the top)
         c_next[:, 0] = 0  # bottom boundary
@@ -121,32 +126,34 @@ def old_solver_diffusion_result():
 
         return c_next
 
-
     def simulate_diffusion(c0, D, dx, dt, T_sim):
         """Simulate the dicretized diffusion process over time."""
         c = np.copy(c0)
         time_steps = int(T_sim / dt)
-        states = np.zeros((time_steps+1, *c.shape))
+        states = np.zeros((time_steps + 1, *c.shape))
         states[0] = c  # store initial state
 
-        for t in range(1, time_steps+1):
+        for t in range(1, time_steps + 1):
             c = discrete_diffusion_equation(c, D, dx, dt)
             states[t] = c
 
-        return np.transpose(states, (0, 2, 1))  # Transpose to (time, x, y) for easier plotting
-
+        return np.transpose(
+            states, (0, 2, 1)
+        )  # Transpose to (time, x, y) for easier plotting
 
     N = DIFF_N
-    c0 = np.zeros((N, N))   # initial concentration field
-    c0[:, N-1] = 1          # set top boundary to 1
-    D = DIFF_D               # diffusion coefficient
-    dx = 1 / N              # spatial step size
-    dt = DIFF_DT             # time step size
-    T_sim = DIFF_T_SIM       # total simulation time
+    c0 = np.zeros((N, N))  # initial concentration field
+    c0[:, N - 1] = 1  # set top boundary to 1
+    D = DIFF_D  # diffusion coefficient
+    dx = 1 / N  # spatial step size
+    dt = DIFF_DT  # time step size
+    T_sim = DIFF_T_SIM  # total simulation time
 
     print(f"Stability condition: 4 * dt * D / dx^2 = {4 * dt * D / dx**2:.4f}")
 
-    assert 4 * dt * D / dx**2 <= 1, f"Stability condition not satisfied: increase N or decrease dt"
+    assert (
+        4 * dt * D / dx**2 <= 1
+    ), f"Stability condition not satisfied: increase N or decrease dt"
 
     states = simulate_diffusion(c0, D, dx, dt, T_sim)
 
@@ -171,19 +178,25 @@ def new_solver_diffusion_result():
     c0[:, -1] = 1  # top boundary
 
     def enforce_bc(t, y):
-        y[:, 0] = 0   # bottom boundary
-        y[:, -1] = 1   # top boundary
+        y[:, 0] = 0  # bottom boundary
+        y[:, -1] = 1  # top boundary
         return y
 
     result = solve_ivp(
-        diffusion2d_rhs, t_span=(0, T_sim), y0=c0,
-        method="forward_euler", dt=dt, args=(D, dx),
-        post_step=enforce_bc, save_interval=1,
+        diffusion2d_rhs,
+        t_span=(0, T_sim),
+        y0=c0,
+        method="forward_euler",
+        dt=dt,
+        args=(D, dx),
+        post_step=enforce_bc,
+        save_interval=1,
     )
     return result.y  # shape (n_saved, N, N), indexed as [t, i, j]
 
 
 # --- Wave Equation Tests ---
+
 
 class TestSolverComparison:
     """Tests comparing old and new wave equation solvers."""
@@ -203,7 +216,9 @@ class TestSolverComparison:
 
         left_boundary_max = np.max(np.abs(amps_new[:, 0]))
 
-        assert left_boundary_max == 0, f"Left boundary nonzero, max = {left_boundary_max}"
+        assert (
+            left_boundary_max == 0
+        ), f"Left boundary nonzero, max = {left_boundary_max}"
 
     def test_new_solver_boundary_right_is_zero(self, new_solver_result):
         """New solver should maintain zero boundary condition at x=L."""
@@ -211,10 +226,13 @@ class TestSolverComparison:
 
         right_boundary_max = np.max(np.abs(amps_new[:, -1]))
 
-        assert right_boundary_max == 0, f"Right boundary nonzero, max = {right_boundary_max}"
+        assert (
+            right_boundary_max == 0
+        ), f"Right boundary nonzero, max = {right_boundary_max}"
 
 
 # --- Diffusion Equation Tests ---
+
 
 class TestSolverComparisonDiffusion:
     """Tests comparing old and new diffusion equation solvers.
@@ -227,7 +245,9 @@ class TestSolverComparisonDiffusion:
     we compare concentration profiles c(y) extracted along x=0.
     """
 
-    def test_final_y_profiles_match(self, old_solver_diffusion_result, new_solver_diffusion_result):
+    def test_final_y_profiles_match(
+        self, old_solver_diffusion_result, new_solver_diffusion_result
+    ):
         """Final c(y) profiles should match between solvers.
 
         Both use the same (N, N) grid, same dx, dt, D, BCs. The only
@@ -238,8 +258,9 @@ class TestSolverComparisonDiffusion:
         len(arange(0, T, dt)) steps (off-by-one), so we compare at the last
         common time index rather than [-1].
         """
-        n_common = min(old_solver_diffusion_result.shape[0],
-                       new_solver_diffusion_result.shape[0])
+        n_common = min(
+            old_solver_diffusion_result.shape[0], new_solver_diffusion_result.shape[0]
+        )
 
         # old output [t, j, i]: c(y) at x=0 is states[:, :, 0]
         prof_old = old_solver_diffusion_result[n_common - 1, :, 0]
@@ -250,7 +271,9 @@ class TestSolverComparisonDiffusion:
         diff = np.max(np.abs(prof_old[1:-1] - prof_new[1:-1]))
         assert diff < 1e-10, f"Final y-profiles differ on interior, max diff = {diff}"
 
-    def test_interior_points_match(self, old_solver_diffusion_result, new_solver_diffusion_result):
+    def test_interior_points_match(
+        self, old_solver_diffusion_result, new_solver_diffusion_result
+    ):
         """Interior concentration fields should match at all common time steps.
 
         The old solver returns [t, j, i], so we transpose axes 1,2 to get [t, i, j]
@@ -264,10 +287,12 @@ class TestSolverComparisonDiffusion:
         # from int() vs np.arange). Compare on the common range.
         n_steps = min(old_ij.shape[0], new_ij.shape[0])
 
-        interior_diff = np.max(np.abs(
-            old_ij[:n_steps, 1:-1, 1:-1] - new_ij[:n_steps, 1:-1, 1:-1]
-        ))
-        assert interior_diff < 1e-10, f"Interior points differ, max diff = {interior_diff}"
+        interior_diff = np.max(
+            np.abs(old_ij[:n_steps, 1:-1, 1:-1] - new_ij[:n_steps, 1:-1, 1:-1])
+        )
+        assert (
+            interior_diff < 1e-10
+        ), f"Interior points differ, max diff = {interior_diff}"
 
     def test_old_boundary_conditions(self, old_solver_diffusion_result):
         """Old solver should maintain c=0 at bottom and c=1 at top throughout."""
@@ -286,14 +311,20 @@ class TestSolverComparisonDiffusion:
     def test_old_initial_condition(self, old_solver_diffusion_result):
         """Old solver should start with c=0 in interior."""
         states = old_solver_diffusion_result
-        assert np.allclose(states[0, 1:-1, :], 0), "Old solver: initial interior not zero"
+        assert np.allclose(
+            states[0, 1:-1, :], 0
+        ), "Old solver: initial interior not zero"
 
     def test_new_initial_condition(self, new_solver_diffusion_result):
         """New solver should start with c=0 in interior."""
         states = new_solver_diffusion_result
-        assert np.allclose(states[0, :, 1:-1], 0), "New solver: initial interior not zero"
+        assert np.allclose(
+            states[0, :, 1:-1], 0
+        ), "New solver: initial interior not zero"
 
-    def test_diffusion_progresses(self, old_solver_diffusion_result, new_solver_diffusion_result):
+    def test_diffusion_progresses(
+        self, old_solver_diffusion_result, new_solver_diffusion_result
+    ):
         """Both solvers should show nonzero concentration in interior after simulation."""
         # Old: [t, j, i] — check mid-height
         mid_old = old_solver_diffusion_result[-1, DIFF_N // 2, 0]
@@ -302,4 +333,3 @@ class TestSolverComparisonDiffusion:
         # New: [t, i, j] — check mid-height
         mid_new = new_solver_diffusion_result[-1, 0, DIFF_N // 2]
         assert mid_new > 0, "New solver: no diffusion occurred at mid-height"
-

@@ -33,7 +33,7 @@ dt = 1e-3
 T_sim = 1.0  # shorter than full sim for faster tests
 
 # Setup grid
-grid = Grid1D(N=N, L=L)
+grid = Grid1D(N=N - 1, L=L)
 
 # Define test cases (same as original script)
 test_cases = [
@@ -66,6 +66,7 @@ def run_simulation(ic_func):
 
 
 # --- Tests ---
+
 
 @pytest.mark.parametrize("name,ic_func", test_cases)
 def test_boundary_conditions(name, ic_func):
