@@ -9,7 +9,7 @@ from pathlib import Path
 
 from scicomp3.core.grid import Grid2D
 from scicomp3.pde.diffusion import apply_diffusion_bc
-from scicomp3.bvp.solver import solve_bvp
+from scicomp3.bvp.omega import search_for_optimal_omega
 
 def fixed_bc(k, y):
     """Enforce diffusion BCs after each iteration."""
@@ -19,25 +19,14 @@ def fixed_bc(k, y):
 # Parameters
 N = 50
 grid = Grid2D(N=N, L=1.0)
-n_omega_values = 39
-omega_min = 0.05
-omega_max = 1.95
-
-omega_values = np.linspace(omega_min, omega_max, n_omega_values)
-n_iterations = np.empty(n_omega_values)
 
 # Initial guess: zero everywhere, then apply BCs
 c0 = np.zeros(grid.shape)
 apply_diffusion_bc(c0)
 
-for i, omega in enumerate(omega_values):
-    # Solve
-    print(f"Solving problem {i+1}/{n_omega_values} ...")
-    result = solve_bvp(c0, method="sor", post_step=fixed_bc, tol=1e-5, omega=omega)
-    print(f"Finished computation in {result.n_iter} iterations.")
 
-    # Save
-    n_iterations[i] = result.n_iter
+omega_optimal, n_iter_opimal, omega_values, n_iterations = search_for_optimal_omega(c0, post_step=fixed_bc, tol=1e-5)
+
 
 
 # Create the plot
@@ -45,6 +34,9 @@ fig, ax = plt.subplots(1, 1, figsize=(8, 6), dpi=100)
 
 ax.semilogy(omega_values, n_iterations, marker="o",
             label="Iterations needed")
+ax.plot(omega_optimal, n_iter_opimal, marker="*",
+        label=f"Optimal $\\omega$ = {omega_optimal:.3f}, "\
+              f"Number of iterations = {n_iter_opimal}")
 ax.set_xlabel("omega ($\\omega$)")
 ax.set_ylabel("Number of iterations needed")
 ax.set_title("Number of Iterations Needed for various values of omega ($\\omega$)")
@@ -57,7 +49,8 @@ plt.tight_layout()
 # Save
 out_dir = Path(__file__).parent.parent / "images" / "figures"
 out_dir.mkdir(parents=True, exist_ok=True)
-plt.savefig(out_dir / "a1_6_optimal_omega.png", dpi=150)
-print(f"Saved to {out_dir / 'a1_6_optimal_omega.png'}")
+filename = "a1_6_seeking_optimal_omega.png"
+plt.savefig(out_dir / filename, dpi=150)
+print(f"Saved to {out_dir / filename}")
 
 plt.show()

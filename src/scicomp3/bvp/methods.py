@@ -1,86 +1,227 @@
 """Iterative methods for BVP (steady-state) solvers.
 
-Methods:
-- jacobi: Jacobi iteration (requires two arrays, cannot update in place)
-- gauss_seidel: Gauss-Seidel iteration (updates in place)
+Each method is provided as a setup function that takes the grid configuration
+(insulator mask, sink_mask, omega, etc.) and returns the iteration step function to be
+used by the solver. All returned step functions have a uniform signature and
+can be used interchangeably.
 
-All methods have signature:
-    step(y, **kwargs) -> y_new
+Setup functions:
+- make_jacobi_step:       Jacobi iteration (vectorised; returns a new array)
+- make_gauss_seidel_step: Gauss-Seidel iteration (updates in place)
+- make_sor_step:          Successive Over-Relaxation (updates in place;
+                          requires omega in [0, 2])
+
+All returned step functions have signature:
+    step(y, **kwargs) -> y
+
+If the grid contains insulating objects, the setup function returns a variant
+that excludes insulating neighbours from the average. Otherwise, a faster
+variant without insulator handling is returned.
+
+The METHODS registry maps string keys to setup functions
 """
 
 import numpy as np
 
+def _compute_jacobi_weights(is_insulator):
+    """
+    For each point, count non-insulating neighbours.
+    Returns a float array; insulator points get weight 1 to avoid division.
+    """
+    neighbour_count = (
+        np.roll(~is_insulator, -1, axis=0).astype(float) +
+        np.roll(~is_insulator,  1, axis=0).astype(float) +
+        np.roll(~is_insulator, -1, axis=1).astype(float) +
+        np.roll(~is_insulator,  1, axis=1).astype(float)
+    )
+    # Avoid division by zero at insulator points (value won't be used)
+    neighbour_count[is_insulator] = 1.0
+    return neighbour_count
 
-def jacobi_step(y, **kwargs):
-    """One Jacobi iteration step (Eq. 12).
 
-    c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^k_{i-1,j} + c^k_{i,j+1} + c^k_{i,j-1})
+def make_jacobi_step(is_insulator, is_sink, **kwargs):
+    """Return a Jacobi iteration step function.
+
+    The returned function computes one Jacobi iteration step (Eq. 12):
+
+        c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^k_{i-1,j} + c^k_{i,j+1} + c^k_{i,j-1})
 
     Uses np.roll for the five-point stencil (periodic in x via wrap-around).
-    Requires two arrays — returns a new array, does not modify y.
+    Requires two arrays — the returned function does not modify y in place.
+
+    If insulators are present, insulating neighbours are excluded from the
+    average and the denominator is adjusted accordingly. Insulator points
+    are left unchanged.
 
     Args:
-        y: Current solution array (N+1 x N+1)
+        is_insulator: Boolean array of shape (N+1 x N+1), True at insulating
+                      grid points.
+        is_sink: Boolean array of shape (N+1 x N+1), True at sink grid points.
 
     Returns:
-        y_new: Updated solution array
+        step: A function with signature step(y, **kwargs) -> y_new that
+              performs one Jacobi iteration step.
     """
-    y_new = 0.25 * (
-        np.roll(y, -1, axis=0) + np.roll(y, 1, axis=0) +
-        np.roll(y, -1, axis=1) + np.roll(y, 1, axis=1)
-    )
-    return y_new
+    if np.any(is_insulator):
+        jacobi_weights = _compute_jacobi_weights(is_insulator)
+
+        def jacobi_step_with_insulator(y, **kwargs):
+            neighbour_sum = (
+                np.roll(y, -1, axis=0) + np.roll(y, 1, axis=0) +
+                np.roll(y, -1, axis=1) + np.roll(y, 1, axis=1)
+            )
+            # Zero out insulating neighbours' contributions
+            insulator_zeroed = y * is_insulator.astype(float)
+            neighbour_sum -= (
+                np.roll(insulator_zeroed, -1, axis=0) + np.roll(insulator_zeroed,  1, axis=0) +
+                np.roll(insulator_zeroed, -1, axis=1) + np.roll(insulator_zeroed,  1, axis=1)
+            )
+            y_new = neighbour_sum / jacobi_weights
+            y_new[is_insulator] = y[is_insulator]   # leave insulator points unchanged
+            y_new[is_sink] = 0                      # And keep sinks at zero
+            return y_new
+        return jacobi_step_with_insulator
+    else:
+        def jacobi_step(y, **kwargs):
+            y_new = 0.25 * (
+                np.roll(y, -1, axis=0) + np.roll(y, 1, axis=0) +
+                np.roll(y, -1, axis=1) + np.roll(y, 1, axis=1)
+            )
+            # Keep sinks at zero
+            y_new[is_sink] = 0
+            return y_new
+        return jacobi_step
 
 
-def gauss_seidel_step(y, **kwargs):
-    """One Gauss-Seidel iteration step (Sec. 1.5).
+def make_gauss_seidel_step(is_insulator, is_sink, **kwargs):
+    """Return a Gauss-Seidel iteration step function.
 
-    c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^{k+1}_{i-1,j}
-                         + c^k_{i,j+1} + c^{k+1}_{i,j-1})
+    The returned function computes one Gauss-Seidel iteration step (Sec. 1.5):
+
+        c^{k+1}_{i,j} = (1/4)(c^k_{i+1,j} + c^{k+1}_{i-1,j}
+                             + c^k_{i,j+1} + c^{k+1}_{i,j-1})
 
     Uses already-updated values as soon as they are available.
     Sweeps rows: incrementing i for fixed j (as stated in the assignment).
-    Updates in place — returns the same (modified) array.
+    The returned function updates y in place and returns the same array.
 
     Periodic x boundary is handled via modular indexing.
 
+    If insulators are present, insulating neighbours are excluded from the
+    average and the denominator is adjusted accordingly. Insulator points
+    are left unchanged.
+
     Args:
-        y: Current solution array (N+1 x N+1), modified in place
+        is_insulator: Boolean array of shape (N+1 x N+1), True at insulating
+                      grid points.
+        is_sink: Boolean array of shape (N+1 x N+1), True at sink grid points.
 
     Returns:
-        y: The same array, updated in place
+        step: A function with signature step(y, **kwargs) -> y that performs
+              one Gauss-Seidel iteration step, modifying y in place.
     """
-    n_i, n_j = y.shape
-    for j in range(1, n_j - 1):        # interior y-points
-        for i in range(n_i):            # all x-points (periodic)
-            i_plus = (i + 1) % n_i
-            i_minus = (i - 1) % n_i
-            y[i, j] = 0.25 * (y[i_plus, j] + y[i_minus, j] +
-                               y[i, j + 1] + y[i, j - 1])
-    return y
+    if np.any(is_insulator):
+        def gauss_seidel_step_with_insulator(y, **kwargs):
+            n_i, n_j = y.shape
+            for j in range(1, n_j - 1):        # interior y-points
+                for i in range(n_i):            # all x-points (periodic)
+                    if is_insulator[i, j] or is_sink[i, j]:
+                        continue
+                    i_plus = (i + 1) % n_i
+                    i_minus = (i - 1) % n_i
+                    coords = [(i_plus, j), (i_minus, j), (i, j + 1), (i, j - 1)]
+                    new_value = np.mean([y[coord] for coord in coords if not is_insulator[coord]])
+                    if not np.isnan(new_value):
+                        y[i,j] = new_value
+            return y
+        return gauss_seidel_step_with_insulator
+    else:
+        def gauss_seidel_step(y, **kwargs):
+            n_i, n_j = y.shape
+            for j in range(1, n_j - 1):        # interior y-points
+                for i in range(n_i):            # all x-points (periodic)
+                    if is_sink[i, j]:
+                        continue
+                    i_plus = (i + 1) % n_i
+                    i_minus = (i - 1) % n_i
+                    y[i, j] = 0.25 * (y[i_plus, j] + y[i_minus, j] +
+                                    y[i, j + 1] + y[i, j - 1])
+            return y
+        return gauss_seidel_step
 
-def sor_step(y, omega = 1.9, **kwargs):
+
+def make_sor_step(is_insulator, is_sink, omega: float, **kwargs):
+    """Return a Successive Over-Relaxation (SOR) iteration step function.
+
+    The returned function computes one SOR step:
+
+        c^{k+1}_{i,j} = (ω/4)(c^k_{i+1,j} + c^{k+1}_{i-1,j}
+                              + c^k_{i,j+1} + c^{k+1}_{i,j-1})
+                        + (1-ω) c^k_{i,j}
+
+    SOR generalises Gauss-Seidel: setting omega=1 recovers Gauss-Seidel exactly.
+    Values of omega in (1, 2) over-relax and typically accelerate convergence;
+    values in (0, 1) under-relax. omega must be in [0, 2].
+
+    Uses already-updated values as soon as they are available.
+    Sweeps rows: incrementing i for fixed j (as stated in the assignment).
+    The returned function updates y in place and returns the same array.
+
+    Periodic x boundary is handled via modular indexing.
+
+    If insulators are present, insulating neighbours are excluded from the
+    average and the denominator is adjusted accordingly. Insulator points
+    are left unchanged.
+
+    Args:
+        is_insulator: Boolean array of shape (N+1 x N+1), True at insulating
+                      grid points.
+        is_sink: Boolean array of shape (N+1 x N+1), True at sink grid points.
+        omega: Relaxation parameter, must be in [0, 2].
+
+    Raises:
+        ValueError: If omega is outside [0, 2].
+
+    Returns:
+        step: A function with signature step(y, **kwargs) -> y that performs
+              one SOR iteration step, modifying y in place.
     """
-    One Successive Over Relaxation (SOR) step with parameter omega (ω).
+    if not (0 <= omega <= 2):
+        raise ValueError(f"omega must be in [0, 2], got {omega:.2f}")
 
-    c^{k+1}_{i,j} = (ω/4)(c^k_{i+1,j} + c^{k+1}_{i-1,j}
-                          + c^k_{i,j+1} + c^{k+1}_{i,j-1})
-                    + (1-ω)c^{k}_{i,j}
-    """
-    n_i, n_j = y.shape
-    for j in range(1, n_j - 1):        # interior y-points
-        for i in range(n_i):            # all x-points (periodic)
-            i_plus = (i + 1) % n_i
-            i_minus = (i - 1) % n_i
-            y[i, j] = omega * 0.25 * (y[i_plus, j] + y[i_minus, j] +
-                                      y[i, j + 1] + y[i, j - 1]) \
-                      + (1 - omega) * y[i, j]
-    return y
+    # Check if there are any insulating objects
+    if np.any(is_insulator):
+        def sor_step_with_insulator(y, **kwargs):
+            n_i, n_j = y.shape
+            for j in range(1, n_j - 1):        # interior y-points
+                for i in range(n_i):            # all x-points (periodic)
+                    if is_insulator[i, j] or is_sink[i, j]:
+                        continue
+                    i_plus = (i + 1) % n_i
+                    i_minus = (i - 1) % n_i
+                    coords = [(i_plus, j), (i_minus, j), (i, j + 1), (i, j - 1)]
+                    new_value = np.mean([y[coord] for coord in coords if not is_insulator[coord]])
+                    if not np.isnan(new_value):
+                        y[i,j] = omega * new_value + (1 - omega) * y[i, j]
+            return y
+        return sor_step_with_insulator
+    else:
+        def sor_step(y, **kwargs):
+            n_i, n_j = y.shape
+            for j in range(1, n_j - 1):        # interior y-points
+                for i in range(n_i):            # all x-points (periodic)
+                    if is_sink[i, j]:
+                        continue
+                    i_plus = (i + 1) % n_i
+                    i_minus = (i - 1) % n_i
+                    y[i, j] = omega * 0.25 * (y[i_plus, j] + y[i_minus, j] +
+                                            y[i, j + 1] + y[i, j - 1]) \
+                            + (1 - omega) * y[i, j]
+            return y
+        return sor_step
 
-# Method registry (Strategy Pattern) — mirrors ode/methods.py METHODS
 METHODS = {
-    "jacobi": jacobi_step,
-    "gauss_seidel": gauss_seidel_step,
-    "sor": sor_step,
-    "successive_over_relaxation": sor_step
+    "jacobi": make_jacobi_step,
+    "gauss_seidel": make_gauss_seidel_step,
+    "sor": make_sor_step
 }
