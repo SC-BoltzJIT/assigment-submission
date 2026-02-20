@@ -9,9 +9,9 @@ requires-python = ">=3.10"
 dependencies = ["numpy", "scipy"]
 
 [project.optional-dependencies]
-plot = ["matplotlib"]
+plot = ["matplotlib", "scienceplots"]
 test = ["pytest"]
-dev = ["matplotlib", "pytest"]
+dev = ["matplotlib", "scienceplots", "pytest"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/scicomp3"]
@@ -19,3 +19,6 @@ packages = ["src/scicomp3"]
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
 testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
