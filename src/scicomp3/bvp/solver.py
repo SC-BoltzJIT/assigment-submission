@@ -7,9 +7,16 @@ from ..objects.insulator import get_insulator_grid
 from ..objects.sink import get_sink_grid
 
 
-def solve_bvp(y0, method="jacobi", tol=1e-5, max_iter=100_000,
-              post_step=None, insulator_coordinates=None,
-              sink_coordinates=None, **kwargs):
+def solve_bvp(
+    y0,
+    method="jacobi",
+    tol=1e-5,
+    max_iter=100_000,
+    post_step=None,
+    insulator_coordinates=None,
+    sink_coordinates=None,
+    **kwargs,
+):
     """Solve a steady-state BVP using iterative relaxation.
 
     Solves nabla^2 y = 0 by iterating until convergence.
@@ -34,6 +41,9 @@ def solve_bvp(y0, method="jacobi", tol=1e-5, max_iter=100_000,
 
     # Initialise from y0, enforce BCs
     y = y0.copy()
+    # Yeah I know the naming is a bit weird,
+    # but it allows the user to initialize the BCs conveniently
+    # maybe we should introduce one more argument such as pre_step?
     if post_step is not None:
         y = post_step(0, y)
 
@@ -45,7 +55,6 @@ def solve_bvp(y0, method="jacobi", tol=1e-5, max_iter=100_000,
     is_sink = get_sink_grid(len(y) - 1, sink_coordinates)
     y[is_sink] = 0
 
-
     # Construct step function
     make_step = METHODS[method]
     step_func = make_step(is_insulator, is_sink, **kwargs)
@@ -56,6 +65,9 @@ def solve_bvp(y0, method="jacobi", tol=1e-5, max_iter=100_000,
         y_old = y.copy()
         y = step_func(y, **kwargs)
         if post_step is not None:
+            # note that argument k is used for flexibility
+            # by keeping the API definition of post_step callback/hook.
+            # we don't really need it for the current BCs of assignment 1
             y = post_step(k + 1, y)
 
         # Convergence measure (Eq. 14): delta = max|y_new - y_old|

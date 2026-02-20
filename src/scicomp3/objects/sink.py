@@ -4,6 +4,7 @@ Utilities for constructing sink regions on a 2D grid.
 
 import numpy as np
 
+
 def get_sink_grid(N: int, coords: np.ndarray):
     """
     Construct a boolean mask marking sink grid points.
@@ -18,7 +19,9 @@ def get_sink_grid(N: int, coords: np.ndarray):
         is_sink: A boolean array of shape (N+1, N+1) where True indicates
                       an sink grid point and False otherwise.
     """
-    shape = (N+1, N+1)
+    # I noticed such N+1 associates to len(y) - 1 usually
+    # This seems a unnecessary complexity.
+    shape = (N + 1, N + 1)
     is_sink = np.zeros(shape, dtype=bool)
     if coords is not None and len(coords) > 0:
         rows = coords[:, 0]
