@@ -28,6 +28,7 @@ SLOW_SCRIPTS = {
     "a1_2_diffusion_animation.py",     # generates diffusion animation
     "a1_6_seeking_optimal_omega.py",   # ternary search over omega
     "a1_6_convergence.py",            # runs Jacobi + GS + multiple SOR
+    "a1_6_insulator_time_evolution.py",  # 3x time-dependent diffusion + GIF
 }
 
 # Scripts with known pre-existing issues (not caused by this test file).
