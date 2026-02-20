@@ -1,6 +1,8 @@
 """
 Comparison between various omega values to find the optimal omega value
 that minimises the number of iterations needed
+
+This file generates the plot with data from a1_6_omega_for_various_N_sim.py
 """
 
 import numpy as np
