@@ -45,6 +45,12 @@ KNOWN_BROKEN = {
         "Incorrect image path",
     "a1_6_optimal_omega.py":
         "Sweeps 39 omega values (including omega~0.05) causing >10min runtime",
+    "a1_6_omega_for_various_N_sim.py":
+        "Simulation sweep over multiple N values exceeds CI timeout",
+    "a1_6_omega_values.py":
+        "Omega sweep simulation exceeds CI timeout",
+    "a1_6_omega_for_various_N_plot.py":
+        "Requires pre-generated data/n_vs_omega.pkl from simulation script",
 }
 
 
