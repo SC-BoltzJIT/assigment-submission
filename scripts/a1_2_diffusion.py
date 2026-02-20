@@ -17,16 +17,30 @@ Tasks E, F: Test correctness and plot at several times.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
+import matplotlib
+import scienceplots
+
+matplotlib.use("TkAgg")
+plt.style.use("science")
+plt.rcParams.update({"font.size": 10})
 
 from scicomp3.core.grid import Grid2D
 from scicomp3.ode.solver import solve_ivp
 from scicomp3.pde.diffusion import (
-    diffusion2d_rhs, apply_diffusion_bc, diffusion_stable_dt, analytical_solution,
+    diffusion2d_rhs,
+    apply_diffusion_bc,
+    diffusion_stable_dt,
+    analytical_solution,
 )
+
+# Output directory
+output_dir = Path(__file__).parent.parent / "images" / "figures"
+output_dir.mkdir(parents=True, exist_ok=True)
 
 
 # Parameters
-N = 50  # grid intervals
+N = 100  # grid intervals
 D = 1.0  # diffusion coefficient
 T_sim = 1.0  # total simulation time
 
@@ -41,23 +55,31 @@ dt = diffusion_stable_dt(D, grid.dx)
 c0 = np.zeros((N + 1, N + 1))
 apply_diffusion_bc(c0)
 
+
 def enforce_bc(t, y):
     apply_diffusion_bc(y)
     return y
 
+
 # Solve diffusion equation
 print(f"Solving diffusion equation (N={N}, D={D}, T_sim={T_sim})...")
 result = solve_ivp(
-    diffusion2d_rhs, t_span=(0, T_sim), y0=c0,
-    method="forward_euler", dt=dt, args=(D, grid.dx),
-    post_step=enforce_bc, save_interval=10,
+    diffusion2d_rhs,
+    t_span=(0, T_sim),
+    y0=c0,
+    method="forward_euler",
+    dt=dt,
+    args=(D, grid.dx),
+    post_step=enforce_bc,
+    save_interval=10,
 )
 t, c_history = result.t, result.y
 print(f"Completed: {len(t)} saved time points")
 
 # --- Figure 1: 2D concentration at several times (Task F) ---
-fig1, axes = plt.subplots(2, 3, figsize=(12, 8))
-axes = axes.flatten()
+fig1, axes = plt.subplots(
+    5, figsize=(3, 7), sharex=True, sharey=True, constrained_layout=True
+)
 
 for idx, t_target in enumerate(target_times):
     # Find closest time in saved data
@@ -66,75 +88,115 @@ for idx, t_target in enumerate(target_times):
     c = c_history[i_closest]
 
     ax = axes[idx]
-    im = ax.pcolormesh(grid.X, grid.Y, c, shading='auto', cmap='hot', vmin=0, vmax=1)
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_title(f't = {t_actual:.4f}')
-    ax.set_aspect('equal')
-    fig1.colorbar(im, ax=ax, label='c')
+    im = ax.pcolormesh(
+        grid.X, grid.Y, c, shading="auto", cmap="gist_heat", vmin=0, vmax=1
+    )
 
-# Hide the 6th subplot (we only have 5 times)
-axes[5].axis('off')
+    ax.tick_params(axis="both", which="minor", direction="out", length=1)
+    ax.tick_params(axis="both", which="major", direction="out", length=2.5)
+    # give the bottom plot an x-label
+    if idx == len(target_times) - 1:
+        ax.set_xlabel(r"$x$ [m]")
+        ax.set_xticks(
+            [np.min(grid.x), (np.max(grid.x) - np.min(grid.x)) / 2, np.max(grid.x)]
+        )
+    ax.set_ylabel(r"$y$ [m]")
+    ax.text(
+        x=grid.x[-1],
+        y=grid.y[0],
+        s=rf"$t\approx$ {t_target:.3f} [s]",
+        fontsize=8,
+        color="white",
+        horizontalalignment="right",
+        verticalalignment="bottom",
+    )
 
-fig1.suptitle('2D Diffusion: Concentration field at different times', fontsize=14)
-plt.tight_layout()
-plt.savefig('images/a1_2_diffusion_2d.png', dpi=150)
-print("Saved: images/a1_2_diffusion_2d.png")
+    ax.set_aspect("equal")
 
-# --- Figure 2: Compare with analytical solution (Task E) ---
-fig2, axes2 = plt.subplots(1, 2, figsize=(12, 5))
-
-# Plot c(y) profiles at different times
-ax1 = axes2[0]
-colors = plt.cm.viridis(np.linspace(0, 1, len(target_times[1:])))  # skip t=0
-
-for idx, (t_target, color) in enumerate(zip(target_times[1:], colors)):
-    i_closest = np.argmin(np.abs(t - t_target))
-    t_actual = t[i_closest]
-    c = c_history[i_closest]
-
-    # Take profile at x = 0.5 (mid-grid)
-    mid_i = N // 2
-    c_numerical = c[mid_i, :]
-
-    # Analytical solution
-    c_analytical = analytical_solution(grid.y, t_actual, D=D)
-
-    ax1.plot(c_numerical, grid.y, 'o', color=color, markersize=4,
-             label=f't={t_actual:.3f} (num)')
-    ax1.plot(c_analytical, grid.y, '--', color=color, linewidth=1.5,
-             label=f't={t_actual:.3f} (ana)')
-
-ax1.set_xlabel('Concentration c')
-ax1.set_ylabel('y')
-ax1.set_title('Concentration profile c(y) at x=0.5')
-ax1.legend(loc='upper left', fontsize=8, ncol=2)
-ax1.grid(True, alpha=0.3)
-
-# Plot error vs analytical solution
-ax2 = axes2[1]
-errors = []
-times_for_error = []
-
-for i, ti in enumerate(t):
-    if ti > 0:  # skip t=0
-        c_numerical = c_history[i][N // 2, :]
-        c_analytical = analytical_solution(grid.y, ti, D=D)
-        error = np.max(np.abs(c_numerical - c_analytical))
-        errors.append(error)
-        times_for_error.append(ti)
-
-ax2.loglog(times_for_error, errors, 'b-', linewidth=2)
-ax2.set_xlabel('Time t')
-ax2.set_ylabel('Max error |c_num - c_ana|')
-ax2.set_title('Error vs analytical solution')
-ax2.grid(True, alpha=0.3, which='both')
-
-plt.tight_layout()
-plt.savefig('images/a1_2_diffusion_validation.png', dpi=150)
-print("Saved: images/a1_2_diffusion_validation.png")
+    if idx == 0:
+        plt.colorbar(
+            im,
+            ax=ax,
+            label=r"$c(x,y;t)$ [m$^{-2}$]",
+            location="top",
+            orientation="horizontal",
+            fraction=0.05,
+            pad=0.06,
+        )
+filename = (
+    output_dir / f"a1_2_diffusion_2d_dt={np.round(dt, 6)}_Tsim={T_sim}_D={D}_N={N}.png"
+)
+plt.savefig(filename, dpi=300, bbox_inches="tight")
+print(f"Saved: {filename}")
 
 plt.show()
+
+# # --- Figure 2: Compare with analytical solution (Task E) ---
+# fig2, axes2 = plt.subplots(1, 2, figsize=(12, 5))
+
+# # Plot c(y) profiles at different times
+# ax1 = axes2[0]
+# colors = plt.cm.viridis(np.linspace(0, 1, len(target_times[1:])))  # skip t=0
+
+# for idx, (t_target, color) in enumerate(zip(target_times[1:], colors)):
+#     i_closest = np.argmin(np.abs(t - t_target))
+#     t_actual = t[i_closest]
+#     c = c_history[i_closest]
+
+#     # Take profile at x = 0.5 (mid-grid)
+#     mid_i = N // 2
+#     c_numerical = c[mid_i, :]
+
+#     # Analytical solution
+#     c_analytical = analytical_solution(grid.y, t_actual, D=D)
+
+#     ax1.plot(
+#         c_numerical,
+#         grid.y,
+#         "o",
+#         color=color,
+#         markersize=4,
+#         label=f"t={t_actual:.3f} (num)",
+#     )
+#     ax1.plot(
+#         c_analytical,
+#         grid.y,
+#         "--",
+#         color=color,
+#         linewidth=1.5,
+#         label=f"t={t_actual:.3f} (ana)",
+#     )
+
+# ax1.set_xlabel("Concentration c")
+# ax1.set_ylabel("y")
+# ax1.set_title("Concentration profile c(y) at x=0.5")
+# ax1.legend(loc="upper left", fontsize=8, ncol=2)
+# ax1.grid(True, alpha=0.3)
+
+# # Plot error vs analytical solution
+# ax2 = axes2[1]
+# errors = []
+# times_for_error = []
+
+# for i, ti in enumerate(t):
+#     if ti > 0:  # skip t=0
+#         c_numerical = c_history[i][N // 2, :]
+#         c_analytical = analytical_solution(grid.y, ti, D=D)
+#         error = np.max(np.abs(c_numerical - c_analytical))
+#         errors.append(error)
+#         times_for_error.append(ti)
+
+# ax2.loglog(times_for_error, errors, "b-", linewidth=2)
+# ax2.set_xlabel("Time t")
+# ax2.set_ylabel("Max error |c_num - c_ana|")
+# ax2.set_title("Error vs analytical solution")
+# ax2.grid(True, alpha=0.3, which="both")
+
+# plt.tight_layout()
+# # plt.savefig("images/a1_2_diffusion_validation.png", dpi=150)
+# # print("Saved: images/a1_2_diffusion_validation.png")
+
+# plt.show()
 
 # Print summary
 print("\nSummary:")
