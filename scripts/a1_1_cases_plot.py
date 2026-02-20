@@ -39,7 +39,7 @@ c = 1
 L = 1
 N = 90  # number grid points (N_intervals + 1)
 dt = 1e-3
-# T_sims = [2.25, 2.25, 1]  # sufficient simulation times to show the blow-up for the forward Euler
+# T_sims = [2.25, 2.25, 0.35]  # sufficient simulation times to show the blow-up for the forward Euler
 T_sims = [
     5e-1,
     2e-1,

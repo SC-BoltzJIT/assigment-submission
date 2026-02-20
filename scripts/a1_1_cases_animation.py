@@ -8,8 +8,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
 from pathlib import Path
+import matplotlib
+
+matplotlib.use("TkAgg")
 
 import sys
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from scicomp3 import Grid1D, solve_ivp, wave1d_rhs
@@ -33,9 +37,9 @@ def animate_wave(grid, amplitudes, time, case, dt, T_sim, c, L, N, output_dir, d
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.plot(grid.x, amplitudes[0], color="ForestGreen")
 
-    ax.set_xlabel('Position along string (x)')
-    ax.set_ylabel('String amplitude (Ψ)')
-    ax.set_title('Vibrating string at time 0', fontsize=14)
+    ax.set_xlabel(r"Position $x$ [m]")
+    ax.set_ylabel(r"Amplitude $\Psi$ [m]")
+    ax.set_title("Vibrating string at time 0 [s]", fontsize=14)
 
     ylim = np.max(np.abs(amplitudes)) * 1.5
     ax.set_ylim(-ylim, ylim)
@@ -45,9 +49,9 @@ def animate_wave(grid, amplitudes, time, case, dt, T_sim, c, L, N, output_dir, d
         ax.clear()
         ax.plot(grid.x, plot, color="ForestGreen")
         ax.set_ylim(-ylim, ylim)
-        ax.set_xlabel('Position along string (x)')
-        ax.set_ylabel('String amplitude (Ψ)')
-        ax.set_title(f'Vibrating string at time {i*10*dt:.2f}', fontsize=14)
+        ax.set_xlabel(r"Position $x$ [m]")
+        ax.set_ylabel(r"Amplitude $\Psi$ [m]")
+        ax.set_title(f"Vibrating string at time {i*10*dt:.2f} [s]", fontsize=14)
         return []
 
     def progress_callback(current_frame, total_frames):
@@ -60,7 +64,10 @@ def animate_wave(grid, amplitudes, time, case, dt, T_sim, c, L, N, output_dir, d
     anim = FuncAnimation(fig, animate, amplitudes_to_animate, interval=10)
 
     print(f"Saving animation for Case {case}...")
-    filename = output_dir / f"vibrating_string_case={case}_dt={dt}_Tsim={T_sim}_c={c}_L={L}_N={N}.gif"
+    filename = (
+        output_dir
+        / f"vibrating_string_case={case}_dt={dt}_Tsim={T_sim}_c={c}_L={L}_N={N}.gif"
+    )
 
     anim.save(
         filename,
@@ -77,24 +84,30 @@ c = 1
 L = 1
 N = 90
 dt = 1e-3
-T_sim = 10
+# T_sims = [
+#     2.25,
+#     2.25,
+#     0.35,
+# ]  # sufficient simulation times to show the blow-up for the forward Euler
+T_sims = [5] * 3  # suitable simulation times per case for plotting of symplectic Euler
 
 # Setup grid
-grid = Grid1D(N=N, L=L)
+grid = Grid1D(N=N - 1, L=L)
+
+# Define test cases
+test_cases = [
+    (r"Case i: sin($2\pi x$)", T_sims[0], initial_condition_case_i),
+    (r"Case ii: sin($5\pi x$)", T_sims[1], initial_condition_case_ii),
+    ("Case iii: Localized", T_sims[2], initial_condition_case_iii),
+]
+
 
 # Output directory
 output_dir = Path(__file__).parent.parent / "images" / "gifs"
 output_dir.mkdir(parents=True, exist_ok=True)
 
-# Define test cases
-test_cases = [
-    ("Case i", initial_condition_case_i),
-    ("Case ii", initial_condition_case_ii),
-    ("Case iii", initial_condition_case_iii),
-]
-
 # Run each case and create animation
-for i, (name, ic_func) in enumerate(test_cases):
+for i, (name, T_sim, ic_func) in enumerate(test_cases):
     print(f"\nProcessing {name}...")
 
     psi0 = ic_func(grid.x)
@@ -112,6 +125,6 @@ for i, (name, ic_func) in enumerate(test_cases):
     )
 
     amplitudes = result.y[:, :, 0]
-    animate_wave(grid, amplitudes, result.t, i+1, dt, T_sim, c, L, N, output_dir)
+    animate_wave(grid, amplitudes, result.t, i + 1, dt, T_sim, c, L, N, output_dir)
 
 print("\nAll animations complete!")
