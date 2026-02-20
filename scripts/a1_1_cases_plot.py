@@ -39,7 +39,12 @@ c = 1
 L = 1
 N = 90  # number grid points (N_intervals + 1)
 dt = 1e-3
-T_sims = [5e-1, 2e-1, 10e-1]  # suitable simulation times per case, for nicer plotting
+# T_sims = [2.25, 2.25, 1]  # sufficient simulation times to show the blow-up for the forward Euler
+T_sims = [
+    5e-1,
+    2e-1,
+    10e-1,
+]  # suitable simulation times per case for plotting of symplectic Euler
 
 # Setup grid
 grid = Grid1D(N=N - 1, L=L)
@@ -80,8 +85,14 @@ for i, (name, result) in enumerate(results):
     amplitudes = result.y[:, :, 0]
 
     fig, ax = plt.subplots(figsize=(4, 5))
-    for j in range(0, len(result.t), len(result.t) // 20):
-        ax.plot(grid.x, amplitudes[j], color=plt.cm.cividis(j / len(result.t)))
+    # times_to_plot = np.arange(len(result.t) - 200, len(result.t), 50)
+    times_to_plot = range(0, len(result.t), len(result.t) // 20)
+    # for j in range(0, len(result.t), len(result.t) // 20):
+    for j in range(len(times_to_plot)):
+        k = times_to_plot[j]
+        ax.plot(
+            grid.x, amplitudes[k], color=plt.cm.cividis(j / (len(times_to_plot) - 1))
+        )
 
     ax.set_xlabel(r"Position $x$ [m]")
     ax.set_ylabel(r"Amplitude $\Psi$ [m]")
@@ -95,7 +106,12 @@ for i, (name, result) in enumerate(results):
         location="top",
         orientation="horizontal",
     )
-    cbar.ax.set_xticklabels([f"{t:.2f}" for t in np.linspace(0, T_sims[i], 3)])
+    cbar.ax.set_xticklabels(
+        [
+            f"{t:.2f}"
+            for t in np.linspace(np.min(times_to_plot), np.max(times_to_plot), 3)
+        ]
+    )
 
     filename = (
         output_dir
