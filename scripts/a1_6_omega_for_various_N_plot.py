@@ -6,40 +6,16 @@ that minimises the number of iterations needed
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+from joblib import load
 
-from scicomp3.core.grid import Grid2D
-from scicomp3.pde.diffusion import apply_diffusion_bc
-from scicomp3.bvp.omega import search_for_optimal_omega
+# Load data
+data_dir = Path(__file__).parent.parent / "data"
+filename = "n_vs_omega.pkl"
+results = load(data_dir / filename)
 
-def fixed_bc(k, y):
-    """Enforce diffusion BCs after each iteration."""
-    apply_diffusion_bc(y)
-    return y
-
-# Parameters
-#N_values = np.logspace(1, 2.5, 4)
-N_values = np.arange(5, 200, 15)
-
-grids = [Grid2D(N=N, L=1.0) for N in N_values]
-
-omega_values = np.empty_like(N_values, dtype=float)
-n_iterations = np.empty_like(N_values, dtype=int)
-
-for i, (N, grid) in enumerate(zip(N_values, grids)):
-    # Initial guess: zero everywhere, then apply BCs
-    c0 = np.zeros(grid.shape)
-    apply_diffusion_bc(c0)
-
-    # Solve
-    print(f"Finding optimal omega for N={N} ...")
-    omega, n_iter, _, iter_list = search_for_optimal_omega(c0, post_step=fixed_bc)
-    print(f"Found omega after {len(iter_list)} tries, "\
-          f"totalling {sum(iter_list)} iterations.")
-
-    # Save
-    omega_values[i] = omega
-    n_iterations[i] = n_iter
-
+N_values = results["N_values"]
+omega_values = results["omega_values"]
+n_iterations = results["n_iterations"]
 
 # Create the plot
 COLOUR_OMEGA = "tab:green"
@@ -47,7 +23,17 @@ COLOUR_ITER  = "tab:blue"
 
 fig, ax = plt.subplots(1, 1, figsize=(8, 6), dpi=100)
 
-ax.plot(N_values, omega_values, marker="o", color=COLOUR_OMEGA)
+# Plot 2 minus omega to get a nice log plot
+distance_to_two = 2 - np.array(omega_values)
+ax.semilogy(N_values, distance_to_two, marker="o", color=COLOUR_OMEGA)
+
+# Replace tick labels with corresponding omega values
+ax.set_ylim(1e-3, 1)
+yticks = [1e-4, 1e-3, 1e-2, 1e-1, 1e0]
+ax.set_yticks(yticks)
+ax.set_yticklabels([f"{2 - t:.3f}" for t in yticks])
+ax.invert_yaxis()
+
 ax.set_xlabel("$N$ (grid size)")
 ax.set_ylabel("Optimal omega ($\\omega$)", color=COLOUR_OMEGA)
 ax.tick_params(axis="y", colors=COLOUR_OMEGA)
