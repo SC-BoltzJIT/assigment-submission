@@ -1,5 +1,7 @@
 __pycache__
 *.png
+*.gif
+!images/**/*.gif
 *.pyc
 dist/
 build/
