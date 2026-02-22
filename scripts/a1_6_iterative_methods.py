@@ -47,14 +47,30 @@ fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
 # Left: profile c(y) at x = 0.5
 ax = axes[0]
-ax.plot(grid.y, res_jacobi.y[mid_i, :], "o-", markersize=3,
-        label=f"Jacobi ({res_jacobi.n_iter} iter)")
-ax.plot(grid.y, res_gs.y[mid_i, :], "s-", markersize=3,
-        label=f"Gauss-Seidel ({res_gs.n_iter} iter)")
-ax.plot(grid.y, res_sor.y[mid_i, :], "^-", markersize=3,
-        label=f"SOR, $\\omega={omega:.3f}$ ({res_sor.n_iter} iter)")
-ax.plot(grid.y, c_analytical, "--", color="black", linewidth=1.5,
-        label="Analytical $c = y$")
+ax.plot(
+    grid.y,
+    res_jacobi.y[mid_i, :],
+    "o-",
+    markersize=3,
+    label=f"Jacobi ({res_jacobi.n_iter} iter)",
+)
+ax.plot(
+    grid.y,
+    res_gs.y[mid_i, :],
+    "s-",
+    markersize=3,
+    label=f"Gauss-Seidel ({res_gs.n_iter} iter)",
+)
+ax.plot(
+    grid.y,
+    res_sor.y[mid_i, :],
+    "^-",
+    markersize=3,
+    label=f"SOR, $\\omega={omega:.3f}$ ({res_sor.n_iter} iter)",
+)
+ax.plot(
+    grid.y, c_analytical, "--", color="black", linewidth=1.5, label="Analytical $c = y$"
+)
 ax.set_xlabel("y")
 ax.set_ylabel("c(x = 0.5, y)")
 ax.set_title("Profile comparison at x = 0.5")
@@ -63,12 +79,27 @@ ax.grid(True, alpha=0.3)
 
 # Right: deviation from analytical
 ax = axes[1]
-ax.plot(grid.y, res_jacobi.y[mid_i, :] - c_analytical, "o-", markersize=3,
-        label=f"Jacobi ({res_jacobi.n_iter} iter)")
-ax.plot(grid.y, res_gs.y[mid_i, :] - c_analytical, "s-", markersize=3,
-        label=f"Gauss-Seidel ({res_gs.n_iter} iter)")
-ax.plot(grid.y, res_sor.y[mid_i, :] - c_analytical, "^-", markersize=3,
-        label=f"SOR, $\\omega={omega:.3f}$ ({res_sor.n_iter} iter)")
+ax.plot(
+    grid.y,
+    res_jacobi.y[mid_i, :] - c_analytical,
+    "o-",
+    markersize=3,
+    label=f"Jacobi ({res_jacobi.n_iter} iter)",
+)
+ax.plot(
+    grid.y,
+    res_gs.y[mid_i, :] - c_analytical,
+    "s-",
+    markersize=3,
+    label=f"Gauss-Seidel ({res_gs.n_iter} iter)",
+)
+ax.plot(
+    grid.y,
+    res_sor.y[mid_i, :] - c_analytical,
+    "^-",
+    markersize=3,
+    label=f"SOR, $\\omega={omega:.3f}$ ({res_sor.n_iter} iter)",
+)
 ax.axhline(0, color="black", linewidth=0.8, linestyle="--")
 ax.set_xlabel("y")
 ax.set_ylabel("$c_{\\mathrm{numerical}} - c_{\\mathrm{analytical}}$")
@@ -87,16 +118,64 @@ print(f"Saved to {out_dir / filename}")
 
 plt.show()
 
+# Combined twin-axis figure: profile + deviation on one axes
+fig3, ax_left = plt.subplots(figsize=(7, 5))
+ax_right = ax_left.twinx()
+
+colors = ["tab:blue", "tab:orange", "tab:green"]
+labels = [
+    f"Jacobi ({res_jacobi.n_iter} iter)",
+    f"Gauss-Seidel ({res_gs.n_iter} iter)",
+    f"SOR, $\\omega={omega:.3f}$ ({res_sor.n_iter} iter)",
+]
+profiles = [res_jacobi.y[mid_i, :], res_gs.y[mid_i, :], res_sor.y[mid_i, :]]
+
+for profile, label, color in zip(profiles, labels, colors):
+    ax_left.plot(grid.y, profile, "-", color=color, linewidth=1.5, label=label)
+    ax_right.plot(
+        grid.y, profile - c_analytical, "--", color=color, linewidth=1.0, alpha=0.7
+    )
+
+ax_left.plot(grid.y, c_analytical, "k-", linewidth=1.2, label="Analytical $c = y$")
+ax_right.axhline(0, color="black", linewidth=0.6, linestyle=":")
+
+ax_left.set_xlabel("y")
+ax_left.set_ylabel("$c(x=0.5,\\ y)$")
+ax_right.set_ylabel("$c_{\\mathrm{num}} - c_{\\mathrm{ana}}$ (dashed)", color="gray")
+ax_right.tick_params(axis="y", labelcolor="gray")
+ax_left.set_title("Profile and deviation from analytical at $x = 0.5$")
+ax_left.legend(loc="upper left", fontsize=8)
+ax_left.grid(True, alpha=0.3)
+
+plt.tight_layout()
+
+filename3 = "a1_6_iterative_methods_combined.png"
+plt.savefig(out_dir / filename3, dpi=150)
+print(f"Saved to {out_dir / filename3}")
+
+plt.show()
+
 # Convergence history comparison (standalone figure)
 fig2, ax2 = plt.subplots(figsize=(6, 5))
 
-ax2.semilogy(range(1, res_jacobi.n_iter + 1), res_jacobi.delta_history,
-             label=f"Jacobi ({res_jacobi.n_iter} iter)")
-ax2.semilogy(range(1, res_gs.n_iter + 1), res_gs.delta_history,
-             label=f"Gauss-Seidel ({res_gs.n_iter} iter)")
-ax2.semilogy(range(1, res_sor.n_iter + 1), res_sor.delta_history,
-             label=f"SOR, $\\omega={omega:.3f}$ ({res_sor.n_iter} iter)")
-ax2.axhline(tol, color="black", linewidth=0.8, linestyle="--", label=f"Tolerance ({tol:.0e})")
+ax2.semilogy(
+    range(1, res_jacobi.n_iter + 1),
+    res_jacobi.delta_history,
+    label=f"Jacobi ({res_jacobi.n_iter} iter)",
+)
+ax2.semilogy(
+    range(1, res_gs.n_iter + 1),
+    res_gs.delta_history,
+    label=f"Gauss-Seidel ({res_gs.n_iter} iter)",
+)
+ax2.semilogy(
+    range(1, res_sor.n_iter + 1),
+    res_sor.delta_history,
+    label=f"SOR, $\\omega={omega:.3f}$ ({res_sor.n_iter} iter)",
+)
+ax2.axhline(
+    tol, color="black", linewidth=0.8, linestyle="--", label=f"Tolerance ({tol:.0e})"
+)
 
 ax2.set_xlabel("Iteration k")
 ax2.set_ylabel(r"$\delta_k$ (max-norm)")
