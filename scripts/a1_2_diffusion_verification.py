@@ -22,7 +22,7 @@ from pathlib import Path
 import matplotlib
 import scienceplots
 
-matplotlib.use("TkAgg")
+# matplotlib.use("TkAgg")
 plt.style.use("science")
 plt.rcParams.update({"font.size": 10})
 

@@ -10,7 +10,7 @@ from matplotlib.animation import FuncAnimation
 from pathlib import Path
 import matplotlib
 
-matplotlib.use("TkAgg")
+# matplotlib.use("TkAgg")
 
 from scicomp3.core.grid import Grid2D
 from scicomp3.ode.solver import solve_ivp
