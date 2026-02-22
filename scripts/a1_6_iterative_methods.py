@@ -7,6 +7,9 @@ then plots all three profiles c(y) at x=0.5 against the analytical solution.
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+import scienceplots  # noqa: F401 (registers styles on import)
+
+plt.style.use(["science"])
 
 from scicomp3.core.grid import Grid2D
 from scicomp3.pde.diffusion import apply_diffusion_bc
