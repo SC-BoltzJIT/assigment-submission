@@ -4,12 +4,39 @@ Numerical solvers for the 1D wave equation, 2D diffusion equation, and steady-st
 
 ## Quick Start
 
+`scicomp3` is released to [PyPI](https://test.pypi.org/project/scicomp3/). You can easily to use it by installing via pip.
+
+```bash
+pip install scicomp3
+```
+
+Now you are ready to try everything under `scripts`!!
+
+
+For example, test the installation:
+
+```bash
+# Clone and enter the project
+cd assigment-submission
+
+# Run tests
+pytest tests/ -v
+
+# Run a script
+python scripts/a1_1_smoke_test.py
+```
+
+
+### Development
+
+Assuming you are using `pip`, you can develop and test the code as a package locally by the below setup.
+
 ```bash
 # Clone and enter the project
 cd assigment-submission
 
 # Create/activate venv and install (editable mode with dev deps)
-uv pip install -e ".[dev]"
+pip install -e ".[dev]"
 
 # Run tests
 pytest tests/ -v
