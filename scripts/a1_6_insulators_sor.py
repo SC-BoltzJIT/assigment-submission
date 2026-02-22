@@ -4,12 +4,14 @@ Solves the steady-state diffusion equation with SOR iteration with omega = 1.9
 on an N=50 grid and compares to the analytical solution c(y) = y.
 """
 
+import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 import scienceplots  # noqa: F401
 
-plt.style.use("science")
+styles = ["science"] if shutil.which("latex") else ["science", "no-latex"]
+plt.style.use(styles)
 
 from scicomp3.core.grid import Grid2D
 from scicomp3.pde.diffusion import apply_diffusion_bc

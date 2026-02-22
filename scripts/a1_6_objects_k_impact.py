@@ -4,12 +4,14 @@ Compares iteration counts for Jacobi, Gauss-Seidel, and SOR
 with no object, a sink, and an insulator — all in one grouped bar chart.
 """
 
+import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 import scienceplots  # noqa: F401
 
-plt.style.use("science")
+styles = ["science"] if shutil.which("latex") else ["science", "no-latex"]
+plt.style.use(styles)
 
 from scicomp3.core.grid import Grid2D
 from scicomp3.pde.diffusion import apply_diffusion_bc
@@ -50,21 +52,35 @@ res_gs_sink = solve_bvp(
     c0, method="gauss_seidel", post_step=fixed_bc, tol=tol, sink_coordinates=sink_coords
 )
 res_sor_sink = solve_bvp(
-    c0, method="sor", post_step=fixed_bc, tol=tol, omega=omega,
+    c0,
+    method="sor",
+    post_step=fixed_bc,
+    tol=tol,
+    omega=omega,
     sink_coordinates=sink_coords,
 )
 
 # --- Solve: with insulator ---
 res_j_ins = solve_bvp(
-    c0, method="jacobi", post_step=fixed_bc, tol=tol,
+    c0,
+    method="jacobi",
+    post_step=fixed_bc,
+    tol=tol,
     insulator_coordinates=insulator_coords,
 )
 res_gs_ins = solve_bvp(
-    c0, method="gauss_seidel", post_step=fixed_bc, tol=tol,
+    c0,
+    method="gauss_seidel",
+    post_step=fixed_bc,
+    tol=tol,
     insulator_coordinates=insulator_coords,
 )
 res_sor_ins = solve_bvp(
-    c0, method="sor", post_step=fixed_bc, tol=tol, omega=omega,
+    c0,
+    method="sor",
+    post_step=fixed_bc,
+    tol=tol,
+    omega=omega,
     insulator_coordinates=insulator_coords,
 )
 

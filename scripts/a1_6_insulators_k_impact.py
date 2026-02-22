@@ -4,12 +4,14 @@ Compares iteration counts for Jacobi, Gauss-Seidel, and SOR
 with and without a rectangular insulator object.
 """
 
+import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 import scienceplots  # noqa: F401
 
-plt.style.use("science")
+styles = ["science"] if shutil.which("latex") else ["science", "no-latex"]
+plt.style.use(styles)
 
 from scicomp3.core.grid import Grid2D
 from scicomp3.pde.diffusion import apply_diffusion_bc
