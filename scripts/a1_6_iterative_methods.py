@@ -4,12 +4,14 @@ Solves the steady-state diffusion equation with Jacobi, Gauss-Seidel, and SOR,
 then plots all three profiles c(y) at x=0.5 against the analytical solution.
 """
 
+import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 import scienceplots  # noqa: F401 (registers styles on import)
 
-plt.style.use(["science"])
+styles = ["science"] if shutil.which("latex") else ["science", "no-latex"]
+plt.style.use(styles)
 
 from scicomp3.core.grid import Grid2D
 from scicomp3.pde.diffusion import apply_diffusion_bc
