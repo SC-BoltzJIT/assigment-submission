@@ -6,12 +6,12 @@ build-backend = "hatchling.build"
 name = "scicomp3"
 version = "0.1.0"
 requires-python = ">=3.10"
-dependencies = ["numpy", "scipy"]
+dependencies = ["numpy", "scipy", "joblib"]
 
 [project.optional-dependencies]
 plot = ["matplotlib", "scienceplots"]
 test = ["pytest"]
-dev = ["matplotlib", "scienceplots", "pytest"]
+dev = ["matplotlib", "scienceplots", "pytest", "joblib"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/scicomp3"]
