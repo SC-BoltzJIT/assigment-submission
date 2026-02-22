@@ -20,11 +20,13 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from pathlib import Path
 
+import shutil
 import matplotlib as mpl
 import scienceplots
 
 # matplotlib.use("TkAgg")
-plt.style.use("science")
+styles = ["science"] if shutil.which("latex") else ["science", "no-latex"]
+plt.style.use(styles)
 # mpl.rcParams.update(mpl.rcParamsDefault)
 # plt.rcParams.update({"font.size": 10})
 
