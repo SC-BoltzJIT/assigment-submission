@@ -20,10 +20,10 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from pathlib import Path
 
-import matplotlib as mpl
+import matplotlib
 import scienceplots
 
-# matplotlib.use("TkAgg")
+matplotlib.use("TkAgg")
 plt.style.use("science")
 # mpl.rcParams.update(mpl.rcParamsDefault)
 # plt.rcParams.update({"font.size": 10})
@@ -164,8 +164,8 @@ filename = (
     output_dir
     / f"a1_2_diffusion_verification_dt={np.round(dt, 6)}_Tsim={T_sim}_D={D}_N={N}_nterms={n_terms}.png"
 )
-plt.savefig(filename, dpi=300, bbox_inches="tight")
-print("Saved: ", filename)
+# plt.savefig(filename, dpi=300, bbox_inches="tight")
+# print("Saved: ", filename)
 
 plt.show()
 
@@ -175,6 +175,12 @@ print(f"  Grid: {N}x{N} intervals ({N+1}x{N+1} points)")
 print(f"  Diffusion coefficient D = {D}")
 print(f"  Simulation time: {T_sim}")
 print(f"  Time steps saved: {len(t)}")
+std = np.std(c_history[:], axis=1)
+print(
+    "  The mean standard deviation along x is:",
+    np.mean(std),
+    " (should be close to 0).",
+)
 
 # Final error at t=1
 c_final_numerical = c_history[-1][N // 2, :]
