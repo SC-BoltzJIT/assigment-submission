@@ -1,5 +1,5 @@
 """
-Assignment 1.2 - Time Dependent Diffusion Equation
+Assignment 1.2 - Time Dependent Diffusion Equation: comparison to analytical result
 
 Solves the 2D diffusion equation:
     ∂c/∂t = D∇²c
@@ -12,7 +12,7 @@ Boundary conditions:
 Initial condition:
     c(x, y, t=0) = 0 for 0 ≤ x ≤ 1, 0 ≤ y < 1
 
-Tasks E, F: Test correctness and plot at several times.
+Task E: Test correctness.
 """
 
 import numpy as np
