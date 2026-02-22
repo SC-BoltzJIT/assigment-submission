@@ -110,10 +110,10 @@ ax.plot(
 ax.plot(
     grid.y, c_analytical, "--", color="black", linewidth=1.5, label="Analytical $c = y$"
 )
-ax.set_xlabel("y")
-ax.set_ylabel("c(x = 0.5, y)")
-ax.set_title("Profile comparison at x = 0.5")
-ax.legend()
+ax.set_xlabel("$y$", fontsize=16)
+ax.set_ylabel("$c(x = 0.5, y)$", fontsize=16)
+ax.set_title("Profile comparison at $x = 0.5$")
+ax.legend(fontsize=20)
 ax.grid(True, alpha=0.3)
 
 # Right: deviation from analytical
@@ -140,10 +140,10 @@ ax.plot(
     label=f"SOR, $\\omega={omega:.3f}$ ({res_sor.n_iter} iter)",
 )
 ax.axhline(0, color="black", linewidth=0.8, linestyle="--")
-ax.set_xlabel("y")
-ax.set_ylabel("$c_{\\mathrm{numerical}} - c_{\\mathrm{analytical}}$")
-ax.set_title("Deviation from analytical at x = 0.5")
-ax.legend()
+ax.set_xlabel("$y$", fontsize=16)
+ax.set_ylabel("$c_{\\mathrm{numerical}} - c_{\\mathrm{analytical}}$", fontsize=16)
+ax.set_title("Deviation from analytical at $x = 0.5$")
+ax.legend(fontsize=20)
 ax.grid(True, alpha=0.3)
 
 plt.tight_layout()
@@ -178,12 +178,12 @@ for profile, label, color in zip(profiles, labels, colors):
 ax_left.plot(grid.y, c_analytical, "k-", linewidth=1.2, label="Analytical $c = y$")
 ax_right.axhline(0, color="black", linewidth=0.6, linestyle=":")
 
-ax_left.set_xlabel("y")
-ax_left.set_ylabel("$c(x=0.5,\\ y)$")
-ax_right.set_ylabel("$c_{\\mathrm{num}} - c_{\\mathrm{ana}}$ (dashed)", color="gray")
+ax_left.set_xlabel("$y$", fontsize=16)
+ax_left.set_ylabel("$c(x=0.5,\\ y)$", fontsize=16)
+ax_right.set_ylabel("$c_{\\mathrm{num}} - c_{\\mathrm{ana}}$ (dashed)", color="gray", fontsize=16)
 ax_right.tick_params(axis="y", labelcolor="gray")
 ax_left.set_title("Profile and deviation from analytical at $x = 0.5$")
-ax_left.legend(loc="upper left", fontsize=8)
+ax_left.legend(loc="upper left", fontsize=16)
 ax_left.grid(True, alpha=0.3)
 
 plt.tight_layout()
@@ -257,16 +257,17 @@ ax_right4.plot(
 )
 ax_right4.axhline(1.0, color="black", linewidth=0.6, linestyle=":")
 
-ax_left4.set_xlabel("y")
-ax_left4.set_ylabel("$c(x=0.5,\\ y)$")
+ax_left4.set_xlabel("$y$", fontsize=16)
+ax_left4.set_ylabel("$c(x=0.5,\\ y)$", fontsize=16)
 ax_right4.set_ylabel(
     r"$(c_{\mathrm{num}} - c_{\mathrm{ana}})\ /\ (\mathrm{Jacobi\ deviation})$ (dashed)",
     color="gray",
+    fontsize=16,
 )
 ax_right4.tick_params(axis="y", labelcolor="gray")
 ax_left4.set_title("Profile and deviation ratio relative to Jacobi at $x = 0.5$")
-ax_left4.legend(loc="upper left", fontsize=8)
-ax_right4.legend(loc="lower right", fontsize=8)
+ax_left4.legend(loc="upper left", fontsize=16)
+ax_right4.legend(loc="lower right", fontsize=16)
 ax_left4.grid(True, alpha=0.3)
 
 plt.tight_layout()
@@ -299,10 +300,10 @@ ax2.axhline(
     tol, color="black", linewidth=0.8, linestyle="--", label=f"Tolerance ({tol:.0e})"
 )
 
-ax2.set_xlabel("Iteration k")
-ax2.set_ylabel(r"$\delta_k$ (max-norm)")
+ax2.set_xlabel("Iteration $k$", fontsize=16)
+ax2.set_ylabel(r"$\delta_k$ (max-norm)", fontsize=16)
 ax2.set_title("Convergence comparison of iterative methods")
-ax2.legend()
+ax2.legend(fontsize=20)
 ax2.grid(True, which="both", alpha=0.3)
 
 plt.tight_layout()

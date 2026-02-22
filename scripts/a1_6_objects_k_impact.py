@@ -118,13 +118,13 @@ for bars in (bars1, bars2, bars3):
             fontsize=6,
         )
 
-ax.set_ylabel("Iterations to convergence")
+ax.set_ylabel("Iterations to convergence", fontsize=16)
 ax.set_title(
     f"Impact of objects on iteration count ($N={N}$, $\\varepsilon={tol:.0e}$)"
 )
 ax.set_xticks(x)
-ax.set_xticklabels(methods)
-ax.legend()
+ax.set_xticklabels(methods, fontsize=14)
+ax.legend(fontsize=20)
 ax.grid(True, axis="y", alpha=0.3)
 
 plt.tight_layout()

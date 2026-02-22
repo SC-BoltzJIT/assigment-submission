@@ -4,9 +4,15 @@ Shows how the convergence measure delta (Eq. 14) depends on the number
 of iterations k for each method. Log-lin plot (semilogy).
 """
 
+import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+import scienceplots  # noqa: F401 (registers styles on import)
+
+styles = ["science"] if shutil.which("latex") else ["science", "no-latex"]
+plt.style.use(styles)
+plt.rcParams.update({"font.size": 14})
 
 from scicomp3.core.grid import Grid2D
 from scicomp3.pde.diffusion import apply_diffusion_bc
@@ -41,7 +47,7 @@ for sor, omega in zip(sor_list, omega_list):
     print(f"SOR (ω={omega:.1f}):  {sor.n_iter} iterations, final delta={sor.delta_history[-1]:.2e}")
 
 # Plot
-fig, ax = plt.subplots(figsize=(8, 5))
+fig, ax = plt.subplots(figsize=(3.5, 3))
 
 ax.semilogy(range(1, jacobi.n_iter + 1), jacobi.delta_history,
             label=f"Jacobi ({jacobi.n_iter} iter)")
@@ -52,10 +58,10 @@ for sor, omega in zip(sor_list, omega_list):
             label=f"SOR, $\\omega={omega:.1f}$ ({sor.n_iter} iter)")
 
 ax.axhline(tol, color="gray", linestyle=":", linewidth=0.8, label=rf"$\epsilon = {tol}$")
-ax.set_xlabel("Iteration k")
-ax.set_ylabel(r"$\delta_k = \max_{i,j} |c^{k+1}_{i,j} - c^{k}_{i,j}|$")
-ax.set_title(f"Convergence comparison (N = {N})")
-ax.legend()
+ax.set_xlabel("Iteration $k$", fontsize=16)
+ax.set_ylabel(r"$\delta_k = \max_{i,j} |c^{k+1}_{i,j} - c^{k}_{i,j}|$", fontsize=16)
+ax.set_title(f"Convergence comparison ($N = {N}$)")
+ax.legend(fontsize=7)
 ax.grid(True, which="both", alpha=0.3)
 
 plt.tight_layout()
