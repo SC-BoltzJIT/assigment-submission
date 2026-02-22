@@ -105,11 +105,11 @@ ax.plot(
     zorder=5,
     label=f"Optimal $\\omega = {omega_optimal_ins:.3f}$, $k = {n_iter_optimal_ins}$ (insulator)",
 )
-ax.set_xlabel(r"$\omega$")
-ax.set_ylabel("Iterations to convergence")
+ax.set_xlabel(r"$\omega$", fontsize=16)
+ax.set_ylabel("Iterations to convergence", fontsize=16)
 ax.set_title(r"Optimal $\omega$ search: effect of objects")
 
-ax.legend()
+ax.legend(fontsize=12)
 ax.grid(True, alpha=0.3)
 
 plt.tight_layout()
