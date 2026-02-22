@@ -1,6 +1,6 @@
 # scicomp3 — Scientific Computing Assignment Package
 
-Numerical solvers for the 1D wave equation and 2D diffusion equation, built for the Scientific Computing course (Assignment Set 1).
+Numerical solvers for the 1D wave equation, 2D diffusion equation, and steady-state Laplace equation, built for the Scientific Computing course (Assignment Set 1).
 
 ## Quick Start
 
@@ -25,37 +25,73 @@ python scripts/a1_1_smoke_test.py
 ├── src/scicomp3/              # Main package
 │   ├── core/
 │   │   ├── grid.py            # Grid1D, Grid2D — spatial discretization
-│   │   └── result.py          # ODEResult — solver output container
+│   │   └── result.py          # ODEResult, BVPResult — solver output containers
 │   ├── ode/
-│   │   ├── methods.py         # Time-stepping methods (Euler, symplectic Euler)
-│   │   └── solver.py          # solve_ivp() — main solver entry point
+│   │   ├── methods.py         # Time-stepping: Euler, symplectic Euler
+│   │   └── solver.py          # solve_ivp() — IVP solver entry point
 │   ├── pde/
-│   │   ├── wave.py            # wave1d_rhs, initial conditions (cases i–iii)
+│   │   ├── wave.py            # wave1d_rhs, initial conditions (cases i–iii), analytical solution
 │   │   └── diffusion.py       # diffusion2d_rhs, BCs, stable dt, analytical solution
+│   ├── bvp/
+│   │   ├── methods.py         # Iterative methods: Jacobi, Gauss-Seidel, SOR
+│   │   ├── solver.py          # solve_bvp() — BVP solver entry point
+│   │   └── omega.py           # Optimal omega computation and search for SOR
+│   ├── objects/
+│   │   ├── shapes.py          # Geometric coordinate generation (rectangles)
+│   │   ├── sink.py            # Sink region utilities
+│   │   └── insulator.py       # Insulator region utilities
 │   └── validation/
 │       └── validation.py      # Boundary condition validation utilities
 │
 ├── tests/                     # Pytest test suite
 │   ├── test_boundary_conditions.py  # Wave BC enforcement (3 cases)
 │   ├── test_diffusion.py           # Diffusion solver + analytical comparison
+│   ├── test_jacobi.py              # Jacobi iteration convergence + steady state
+│   ├── test_gauss_seidel.py        # Gauss-Seidel iteration convergence
+│   ├── test_sor.py                 # SOR iteration with omega = 1.9
+│   ├── test_scripts.py             # Smoke tests for all scripts
 │   └── test_solver_comparison.py   # Legacy vs scicomp3 solver parity
 │
 ├── scripts/                   # Runnable plotting/animation scripts
-│   ├── a1_1_smoke_test.py          # Quick wave equation smoke test
-│   ├── a1_1_cases_plot.py          # Wave plots for all 3 initial conditions
-│   ├── a1_1_cases_animation.py     # Wave animated GIFs
-│   ├── a1_2_diffusion.py           # 2D diffusion: fields + analytical validation
-│   └── a1_2_diffusion_animation.py # Diffusion animated GIF
+│   ├── a1_1_smoke_test.py                # Quick wave equation smoke test
+│   ├── a1_1_cases_plot.py                # Wave plots for all 3 initial conditions
+│   ├── a1_1_cases_animation.py           # Wave animated GIFs
+│   ├── a1_1_cases_compared_to_analytical.py  # Numerical vs analytical error
+│   ├── a1_2_diffusion.py                # 2D diffusion snapshots
+│   ├── a1_2_diffusion_animation.py       # Diffusion animated GIF
+│   ├── a1_2_diffusion_verification.py    # Diffusion vs analytical verification
+│   ├── a1_6_iterative_methods.py         # Compare Jacobi/GS/SOR profiles + deviations
+│   ├── a1_6_iterative_convergence.py     # Convergence rate comparison
+│   ├── a1_6_iterative_jacobi.py          # Jacobi standalone
+│   ├── a1_6_iterative_gauss_seidel.py    # Gauss-Seidel standalone
+│   ├── a1_6_iterative_sor.py             # SOR standalone
+│   ├── a1_6_objects_k_impact.py          # Object impact on iteration count
+│   ├── a1_6_seeking_optimal_omega.py     # Optimal omega search with objects
+│   ├── a1_6_omega_values.py              # Omega parameter exploration
+│   ├── a1_6_omega_for_various_N_sim.py   # Omega vs grid size simulation
+│   ├── a1_6_omega_for_various_N_plot.py  # Omega vs grid size plotting
+│   ├── a1_6_sinks_jacobi.py             # Sink object with Jacobi
+│   ├── a1_6_sinks_gauss_seidel.py       # Sink object with Gauss-Seidel
+│   ├── a1_6_sinks_sor.py                # Sink object with SOR
+│   ├── a1_6_sinks_sor_animation.py      # Sink SOR animation
+│   ├── a1_6_sinks_k_impact.py           # Sink impact on convergence
+│   ├── a1_6_sinks_and_insulators_sor.py  # Combined sink + insulator
+│   ├── a1_6_insulators_jacobi.py         # Insulator with Jacobi
+│   ├── a1_6_insulators_gauss_seidel.py   # Insulator with Gauss-Seidel
+│   ├── a1_6_insulators_sor.py            # Insulator with SOR
+│   ├── a1_6_insulators_sor_animation.py  # Insulator SOR animation
+│   └── a1_6_insulators_k_impact.py       # Insulator impact on convergence
 │
 ├── assignment01.py            # Legacy wave solver (kept for comparison tests)
 ├── run_assignment01_*.py      # Legacy plotting scripts using assignment01.py
+├── data/                      # Cached simulation data (e.g. n_vs_omega.pkl)
 ├── pyproject.toml             # Build config (hatchling), deps, pytest settings
-└── images/                    # Generated figures and GIFs (.gitignored)
+└── images/                    # Generated figures and GIFs
 ```
 
 ## How It Works
 
-### Solving a PDE
+### Solving a PDE (Initial Value Problem)
 
 The package separates concerns into three layers:
 
@@ -130,6 +166,21 @@ result = solve_ivp(
 )
 ```
 
+### Solving a BVP (Steady-State)
+
+For steady-state problems (Laplace equation), iterative solvers are available:
+
+```python
+from scicomp3.bvp.solver import solve_bvp
+from scicomp3.bvp.omega import get_optimal_omega
+
+result = solve_bvp(c0, method="sor", post_step=fixed_bc, tol=1e-5,
+                   omega=get_optimal_omega(N))
+# result.y       — converged solution
+# result.n_iter  — iterations to convergence
+# result.delta_history — convergence measure per iteration
+```
+
 ### Available Time-Stepping Methods
 
 | Name | Aliases | Order | Properties |
@@ -137,7 +188,15 @@ result = solve_ivp(
 | `"symplectic_euler"` | `"euler_cromer"`, `"semi_implicit_euler"` | 1st | Symplectic (energy-preserving). Default. Use for wave equation. |
 | `"forward_euler"` | `"euler"` | 1st | Explicit. Use for diffusion equation. |
 
-Methods are registered in `scicomp3.ode.methods.METHODS` and looked up by name in `solve_ivp()`.
+### Available Iterative Methods (BVP)
+
+| Name | Description |
+|------|-------------|
+| `"jacobi"` | Jacobi iteration — vectorized with `np.roll` |
+| `"gauss_seidel"` | Gauss-Seidel — sequential updates using latest values |
+| `"sor"` | Successive Over-Relaxation — accelerated Gauss-Seidel with relaxation parameter omega |
+
+Methods are registered in `scicomp3.ode.methods.METHODS` (IVP) and `scicomp3.bvp.methods` (BVP), looked up by name in `solve_ivp()` and `solve_bvp()`.
 
 ### Key Design Decisions
 
@@ -145,7 +204,9 @@ Methods are registered in `scicomp3.ode.methods.METHODS` and looked up by name i
 
 **Symplectic Euler for wave equation.** Forward Euler is dissipative — it loses energy over time. The symplectic Euler method preserves the phase-space structure of Hamiltonian systems, keeping energy bounded over long simulations. This is the default method.
 
-**Explicit scheme for diffusion.** The FTCS (Forward Time, Centered Space) scheme is simple but conditionally stable. Use `diffusion_stable_dt()` to compute a safe time step (90% of the theoretical maximum $\delta x^2 / 4D$).
+**Explicit scheme for diffusion.** The FTCS (Forward Time, Centered Space) scheme is simple but conditionally stable. Use `diffusion_stable_dt()` to compute a safe time step (90% of the theoretical maximum δx² / 4D).
+
+**Sink and insulator objects.** The BVP solvers support sink (Dirichlet, c=0) and insulator (Neumann, zero-flux) objects via coordinate arrays passed to `solve_bvp()`.
 
 ## Running Tests
 
@@ -162,12 +223,16 @@ pytest tests/ -v -s
 
 The test suite covers:
 - **test_boundary_conditions.py** — Wave equation BCs hold for all 3 initial conditions; documents np.roll boundary pollution without post_step.
-- **test_diffusion.py** — Diffusion BCs (top=1, bottom=0), convergence to steady state $c=y$, match against analytical erfc series solution, stability check.
+- **test_diffusion.py** — Diffusion BCs (top=1, bottom=0), convergence to steady state c=y, match against analytical erfc series solution, stability check.
+- **test_jacobi.py** — Jacobi iteration convergence, steady-state profile, boundary checks, monotonicity.
+- **test_gauss_seidel.py** — Gauss-Seidel convergence, fewer iterations than Jacobi.
+- **test_sor.py** — SOR iteration with omega=1.9.
+- **test_scripts.py** — Smoke tests that every script under `scripts/` runs without error.
 - **test_solver_comparison.py** — Legacy `assignment01.py` and `scicomp3` solvers produce identical interior-point results.
 
 ## Running Scripts
 
-Scripts live in `scripts/` and produce plots or animations. They require `matplotlib`:
+Scripts live in `scripts/` and produce plots or animations. They require `matplotlib` and `scienceplots`:
 
 ```bash
 # Quick smoke test (interactive plot)
@@ -179,11 +244,26 @@ python scripts/a1_1_cases_plot.py
 # Generate animated GIFs for all wave cases → images/gifs/
 python scripts/a1_1_cases_animation.py
 
-# 2D diffusion: concentration fields + analytical validation → images/
+# Numerical vs analytical comparison → images/figures/
+python scripts/a1_1_cases_compared_to_analytical.py
+
+# 2D diffusion: concentration fields → images/figures/
 python scripts/a1_2_diffusion.py
 
-# 2D diffusion animation → images/gifs/
-python scripts/a1_2_diffusion_animation.py
+# 2D diffusion vs analytical verification → images/figures/
+python scripts/a1_2_diffusion_verification.py
+
+# Compare iterative methods (Jacobi, GS, SOR) → images/figures/
+python scripts/a1_6_iterative_methods.py
+
+# Convergence rate comparison → images/figures/
+python scripts/a1_6_iterative_convergence.py
+
+# Object impact on iteration count → images/figures/
+python scripts/a1_6_objects_k_impact.py
+
+# Optimal omega search with objects → images/figures/
+python scripts/a1_6_seeking_optimal_omega.py
 ```
 
 ## Adding a New Time-Stepping Method
@@ -229,8 +309,8 @@ def my_pde_rhs(t, y, *params):
 
 ## Dependencies
 
-- **Required**: `numpy`, `scipy`
-- **Plotting**: `matplotlib` (optional, needed for scripts)
+- **Required**: `numpy`, `scipy`, `joblib`
+- **Plotting**: `matplotlib`, `scienceplots` (optional, needed for scripts)
 - **Testing**: `pytest` (optional)
 
 Python >= 3.10.
