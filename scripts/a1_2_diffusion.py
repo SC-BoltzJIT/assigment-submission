@@ -18,12 +18,13 @@ Tasks F: Plot at several times.
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-import matplotlib
+
+# import matplotlib as mpl
 import scienceplots
 
 # matplotlib.use("TkAgg")
 plt.style.use("science")
-plt.rcParams.update({"font.size": 10})
+# plt.rcParams.update({"font.size": 10})
 
 from scicomp3.core.grid import Grid2D
 from scicomp3.ode.solver import solve_ivp

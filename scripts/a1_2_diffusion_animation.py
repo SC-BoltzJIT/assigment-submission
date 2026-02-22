@@ -8,7 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from pathlib import Path
-import matplotlib
+
+# import matplotlib
 
 # matplotlib.use("TkAgg")
 
