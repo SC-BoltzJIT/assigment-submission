@@ -107,3 +107,45 @@ plt.savefig(out_dir / filename, dpi=150)
 print(f"Saved to {out_dir / filename}")
 
 plt.show()
+
+# --- Second figure: 2D field (top) + profile (bottom) ---
+fig2, (ax_top, ax_bot) = plt.subplots(2, 1, figsize=(4, 7), constrained_layout=True)
+
+# Top: concentration field
+im2 = ax_top.pcolormesh(
+    grid.X, grid.Y, result.y, shading="auto", cmap="gist_heat", vmin=0, vmax=1
+)
+fig2.colorbar(
+    im2,
+    ax=ax_top,
+    label=r"$c(x,y)$",
+    location="top",
+    orientation="horizontal",
+    fraction=0.05,
+    pad=0.06,
+)
+ax_top.tick_params(axis="both", which="minor", direction="out", length=1)
+ax_top.tick_params(axis="both", which="major", direction="out", length=2.5)
+ax_top.set_xlabel(r"$x$ [m]")
+ax_top.set_ylabel(r"$y$ [m]")
+ax_top.set_title("SOR solution $c(x, y)$")
+ax_top.set_aspect("equal")
+
+# Bottom: profile c(y) at x=0.5
+ax_bot.plot(
+    grid.y, result.y[mid_i, :], "o-", markersize=3, label=f"SOR, $\\omega={omega:.1f}$"
+)
+ax_bot.plot(
+    grid.y, grid.y, "--", color="black", linewidth=1.2, label="Analytical $c=y$"
+)
+ax_bot.set_xlabel(r"$y$ [m]")
+ax_bot.set_ylabel(r"$c(x{=}0.5,\,y)$")
+ax_bot.set_title("Profile at $x = 0.5$")
+ax_bot.legend()
+ax_bot.grid(True, alpha=0.3)
+
+filename2 = "a1_6_sink_sor_2panel.png"
+fig2.savefig(out_dir / filename2, dpi=150)
+print(f"Saved to {out_dir / filename2}")
+
+plt.show()
