@@ -41,7 +41,7 @@ def wave1d_rhs(t, y, c, L, N):
     dpsi_dt[0] = 0
     dpsi_dt[-1] = 0
     dv_dt[0] = 0
-    dpsi_dt[-1] = 0
+    dv_dt[-1] = 0
 
     return np.column_stack([dpsi_dt, dv_dt])
 
